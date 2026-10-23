@@ -99,9 +99,6 @@ a:focus-visible {
 .navbar a:hover,
 .navbar a[aria-current="page"] { color: var(--chalk); }
 
-/* icon in the section's plate colour in front of each section link */
-.navbar a .icon { width: 1.5rem; height: 1.5rem; color: var(--plate); }
-
 /* light / dark switch at the right end of the navbar (theme.js) */
 .theme-toggle {
   margin-left: auto;

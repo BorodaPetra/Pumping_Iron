@@ -16,7 +16,7 @@
     <a class="brand" href="/" aria-label="Pumping Iron, главная"><span class="logo logo-title" aria-hidden="true"></span></a>
     <span class="logo logo-dumbbell" aria-hidden="true"></span>
     {% for item in nav %}
-      <a href="{{ item.path }}" class="plate-{{ item.plate }}"{% if current == item.path or current.startswith(item.path ~ '/') %} aria-current="page"{% endif %}>{{ icon(item.icon) }}<span class="lbl" data-text="{{ item.title }}">{{ item.title }}</span></a>
+      <a href="{{ item.path }}" class="plate-{{ item.plate }}"{% if current == item.path or current.startswith(item.path ~ '/') %} aria-current="page"{% endif %}><span class="lbl" data-text="{{ item.title }}">{{ item.title }}</span></a>
     {% endfor %}
     <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Переключить светлую и тёмную тему" title="Светлая / тёмная тема">{{ icon('contrast') }}</button>
   </nav>
