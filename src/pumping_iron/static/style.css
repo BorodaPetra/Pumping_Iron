@@ -449,6 +449,9 @@ main.plate-red { max-width: 80rem; }
 /* Body section (blue plate): both tabs, measures and photos, share one wide column, so switching between them does not shift the block. */
 main.plate-blue { max-width: 80rem; }
 
+/* Nutrition section (orange plate): meal plan and diary share the same wide column as the body pages. */
+main.plate-orange { max-width: 80rem; }
+
 /* Body page: the form with the figure on the left, the table of all values on the right (wide screens only). */
 @media (min-width: 70rem) {
   .body-layout { display: grid; grid-template-columns: minmax(0, 40rem) minmax(0, 1fr); gap: 2.5rem; align-items: start; }
