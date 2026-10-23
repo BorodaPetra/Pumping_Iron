@@ -81,7 +81,21 @@ def build_context(db: sqlite3.Connection) -> str:
            or "отдых")
         for number, day in enumerate(build_week(db), start=1)
     )
-    return f"Справочник упражнений по группам мышц:\n{library}\n\nТекущая программа пользователя:\n{program}"
+    meals, plan_total = build_diet(db)
+    diet = "\n".join(
+        f"- {m['meal']}: "
+        + ("; ".join(f"{i['food']} {i['grams']} г ({i['kcal']} ккал)" for i in m["items"]) or "пусто")
+        for m in meals
+    )
+    eaten = db.execute(
+        "SELECT COALESCE(SUM(kcal), 0) AS kcal FROM food_log WHERE eaten_on = ?", (date.today().isoformat(),)
+    ).fetchone()
+    return (
+        f"Справочник упражнений по группам мышц:\n{library}\n\nТекущая программа пользователя:\n{program}\n\n"
+        f"Текущий рацион на день (итого {plan_total['kcal']} ккал, Б {plan_total['protein_g']:g} / "
+        f"Ж {plan_total['fat_g']:g} / У {plan_total['carbs_g']:g}):\n{diet}\n\n"
+        f"Сегодня по дневнику съедено {eaten['kcal']} ккал."
+    )
 
 
 def _error(message: str) -> tuple[str, None]:
