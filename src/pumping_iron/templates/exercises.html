@@ -13,14 +13,19 @@
   <button class="btn" type="submit">{{ icon('plus') }} Создать</button>
 </form>
 
-<div class="lib-groups">
-  {% for group, exercises in options.items() %}
-    <section class="lib-group">
-      <h2>{{ group }} <small>{{ exercises|length }}</small></h2>
-      <ul>
-        {% for e in exercises %}<li>{{ e.name }}{% if e.description %}<small>({{ e.description }})</small>{% endif %}</li>{% endfor %}
-      </ul>
-    </section>
-  {% endfor %}
-</div>
+{% for title, block_groups in blocks %}
+<section class="lib-block">
+  <h2>{{ title }}</h2>
+  <div class="lib-groups">
+    {% for group, exercises in block_groups %}
+      <section class="lib-group">
+        <h3>{{ group }} <small>{{ exercises|length }}</small></h3>
+        <ul>
+          {% for e in exercises %}<li>{{ e.name }}{% if e.description %}<small>({{ e.description }})</small>{% endif %}</li>{% endfor %}
+        </ul>
+      </section>
+    {% endfor %}
+  </div>
+</section>
+{% endfor %}
 {% endblock %}

@@ -20,6 +20,13 @@ Db = Annotated[sqlite3.Connection, Depends(get_db)]
 
 WEEKDAYS = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"]
 WEEKDAYS_SHORT = ["пн", "вт", "ср", "чт", "пт", "сб", "вс"]
+# Muscle groups of the library tab arranged in three blocks of the body.
+LIBRARY_BLOCKS = [
+    ("Верхняя часть туловища", ["Грудь", "Плечи", "Трицепс", "Спина", "Бицепс"]),
+    ("Средняя часть", ["Пресс", "Низ спины"]),
+    ("Ноги", ["Квадрицепс", "Бицепс бедра", "Ягодицы", "Икры"]),
+]
+
 # The training program has three numbered days instead of weekdays.
 PROGRAM_DAYS = ["День 1", "День 2", "День 3"]
 
@@ -80,9 +87,11 @@ def program_page(request: Request, db: Db) -> HTMLResponse:
 
 @router.get("/exercises", response_class=HTMLResponse)
 def library_page(request: Request, db: Db) -> HTMLResponse:
-    """Show the exercise library grouped by muscle group, with the form for a new exercise."""
+    """Show the exercise library in body blocks, each with its muscle groups, and the form for a new exercise."""
     groups = db.execute("SELECT id, name FROM muscle_groups ORDER BY id").fetchall()
-    return page(request, "exercises.html", "red", groups=groups, options=exercise_options(db))
+    options = exercise_options(db)
+    blocks = [(title, [(name, options[name]) for name in names if name in options]) for title, names in LIBRARY_BLOCKS]
+    return page(request, "exercises.html", "red", groups=groups, blocks=blocks)
 
 
 @router.post("/program/add")
