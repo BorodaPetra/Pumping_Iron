@@ -17,9 +17,9 @@ PAGES = [
     ("/workouts", None, "Тренировки", "red", "dumbbell"),
     ("/body", None, "Показатели", "blue", "ruler"),
     ("/assistant", None, "АИ тренер", "yellow", "bot"),
-    ("/meditation", "meditation.html", "Медитации", "green", "moon"),
     ("/stats", None, "Статистика", "white", "chart"),
     ("/nutrition", None, "Питание", "orange", "utensils"),
+    ("/meditation", "meditation.html", "Медитации", "green", "moon"),
 ]
 
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
