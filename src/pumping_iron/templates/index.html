@@ -15,7 +15,7 @@
 </figure>
 {% endmacro %}
 {% set wisdom = quote.kind == "s" %}
-<section id="quote" class="quotes plate-{{ 'white' if wisdom else 'red' }}" aria-label="Цитата дня">
+<section id="quote" class="quotes plate-{{ 'white' if wisdom else 'red' }}" aria-label="Цитата дня" style="--n-max: {{ [quote.en.split()|length, quote.ru.split()|length]|max }}">
   <h2>{{ icon("column" if wisdom else "flame") }} {{ "Мысль дня" if wisdom else "Заряд дня" }}</h2>
   <div class="quote-pair">
     {# The aphorisms by Claude are written in Russian, so there the Russian block carries the author. #}

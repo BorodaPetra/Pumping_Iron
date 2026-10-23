@@ -85,6 +85,16 @@ function addBubble(role, text, photos = []) {
   return bubble;
 }
 
+/** Put a spinner into a bubble that waits for the reply; removing the returned element ends the wait. */
+function addSpinner(bubble) {
+  const spinner = document.createElement("div");
+  spinner.className = "spinner";
+  spinner.setAttribute("role", "status");
+  spinner.setAttribute("aria-label", "Ждём ответ");
+  bubble.appendChild(spinner);
+  return spinner;
+}
+
 /** Draw one piece of an assistant reply: text goes into a span (consecutive text shares it), notices into a line. */
 function drawPart(bubble, { type, value }) {
   if (type === "text") {
@@ -139,6 +149,10 @@ try {
 // fails with "network error"; `leaving` keeps that from overwriting the saved state (see send).
 let leaving = false;
 window.addEventListener("pagehide", () => { leaving = true; saveChat(); });
+// A page restored from the back/forward cache keeps its script state, but the request was aborted when it
+// was hidden and `leaving` is still set, so the form would stay locked. Reload: the saved state is redrawn
+// with the "interrupted" note and the form works again.
+window.addEventListener("pageshow", (event) => { if (event.persisted) location.reload(); });
 
 /** Split a fetch response body into parsed NDJSON events, tolerating chunks that end mid-line. */
 async function* readEvents(response) {
@@ -166,14 +180,15 @@ async function send(text) {
   addBubble("user", text, photos);
   const record = { role: "assistant", parts: [], pending: true };
   view.push(record);
-  const bubble = addBubble("assistant", "…");
+  const bubble = addBubble("assistant", "");
+  const spinner = addSpinner(bubble);
   sendButton.disabled = true;
   saveChat();
 
   let reply = ""; // the model's own text: this is what goes into the history
   let failed = false;
-  /** Replace the "…" placeholder with the first real content. */
-  const clearPlaceholder = () => { if (bubble.textContent === "…") bubble.textContent = ""; };
+  /** Remove the spinner when the first real content arrives. */
+  const clearPlaceholder = () => spinner.remove();
 
   try {
     const response = await fetch("/api/chat", {
@@ -201,8 +216,8 @@ async function send(text) {
     } else {
       history.pop(); // no usable answer: drop the question so a retry does not duplicate it
     }
-    if (bubble.textContent === "…") {
-      bubble.textContent = "";
+    if (spinner.isConnected) {
+      spinner.remove();
       addPart(record, bubble, { type: "error", value: "Пустой ответ модели." });
     }
     record.pending = false;
