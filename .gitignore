@@ -16,3 +16,4 @@ api-endpoints.md
 # Tooling
 .remember/
 .claude/
+.playwright-mcp/

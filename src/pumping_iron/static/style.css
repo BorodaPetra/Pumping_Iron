@@ -1,50 +1,184 @@
+/* Pumping Iron: steel-grey gym floor, chalk text, competition plate colours. */
+
 :root {
-  --bg: #14161a;
-  --panel: #1e2127;
-  --text: #e6e8eb;
-  --muted: #8b929c;
-  --accent: #ff6b35;
+  --steel: #22262b;
+  --steel-deep: #1a1d21;
+  --steel-light: #3a4048;
+  --chalk: #ece9e2;
+  --muted: #a1a7ad;
+
+  --red: #c8312b;
+  --blue: #2b5fa8;
+  --yellow: #e3b92c;
+  --green: #26794a;
+  --white: #ece9e2;
+
+  --font-display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, sans-serif;
 }
+
+/* A section picks its plate colour by class; --on is the readable text colour on it. */
+.plate-red    { --plate: var(--red);    --on: var(--chalk); }
+.plate-blue   { --plate: var(--blue);   --on: var(--chalk); }
+.plate-yellow { --plate: var(--yellow); --on: var(--steel-deep); }
+.plate-green  { --plate: var(--green);  --on: var(--chalk); }
+.plate-white  { --plate: var(--white);  --on: var(--steel-deep); }
 
 * { box-sizing: border-box; }
 
 body {
   margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  font-family: system-ui, sans-serif;
+  min-height: 100vh;
+  background: var(--steel);
+  color: var(--chalk);
+  font-family: var(--font-body);
+  line-height: 1.55;
 }
+
+h1, h2 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: 0.01em;
+}
+
+a:focus-visible {
+  outline: 3px solid var(--chalk);
+  outline-offset: 3px;
+}
+
+/* ---------- navbar ---------- */
 
 .navbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 1.25rem;
   align-items: center;
-  padding: 0.9rem 1.5rem;
-  background: var(--panel);
-  border-bottom: 2px solid var(--accent);
+  gap: 0.25rem 1.5rem;
+  padding: 0.85rem 1.5rem;
+  background: var(--steel-deep);
+  border-bottom: 1px solid var(--steel-light);
 }
 
-.navbar a { color: var(--muted); text-decoration: none; }
-.navbar a:hover, .navbar a.active { color: var(--text); }
-.navbar .brand { color: var(--accent); font-weight: 700; margin-right: 1rem; }
-
-main { max-width: 64rem; margin: 2rem auto; padding: 0 1.5rem; }
-
-.cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
-  gap: 1rem;
-}
-
-.card {
-  display: block;
-  padding: 1.25rem;
-  background: var(--panel);
-  border-radius: 0.5rem;
-  color: var(--text);
+.navbar a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0;
+  color: var(--muted);
   text-decoration: none;
+  border-bottom: 2px solid transparent;
 }
 
-.card:hover { outline: 1px solid var(--accent); }
-.card p { color: var(--muted); margin-bottom: 0; }
+.navbar a:hover,
+.navbar a[aria-current="page"] { color: var(--chalk); }
+.navbar a[aria-current="page"] { border-bottom-color: var(--plate); }
+
+/* small plate disc in front of each section link */
+.navbar a[class*="plate-"]::before {
+  content: "";
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: var(--plate);
+  box-shadow: inset 0 0 0 0.15rem rgb(0 0 0 / 0.22);
+}
+
+.navbar .brand {
+  margin-right: 1rem;
+  color: var(--chalk);
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+/* ---------- section pages ---------- */
+
+main { max-width: 64rem; margin: 2.5rem auto; padding: 0 1.5rem; }
+
+/* coloured slab in front of the page title = the section's plate */
+main[class*="plate-"] h1::before {
+  content: "";
+  display: inline-block;
+  width: 0.8rem;
+  height: 0.9em;
+  margin-right: 0.7rem;
+  border-radius: 0.2rem;
+  background: var(--plate);
+  vertical-align: -0.05em;
+}
+
+main p { max-width: 60ch; color: var(--muted); }
+
+/* ---------- home: the barbell ---------- */
+
+.hero h1 { margin-bottom: 0.25rem; font-size: clamp(2rem, 6vw, 3.4rem); }
+.hero p { margin: 0 0 2rem; }
+
+.barbell {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 24rem;
+}
+
+.bar {
+  flex: 1;
+  min-width: 2rem;
+  height: 0.9rem;
+  border-radius: 0.2rem 0 0 0.2rem;
+  background: linear-gradient(#8a9097, #565c63);
+}
+
+.collar {
+  width: 0.9rem;
+  height: 4rem;
+  border-radius: 0.2rem;
+  background: linear-gradient(90deg, #8a9097, #565c63);
+}
+
+.sleeve {
+  width: 1rem;
+  height: 0.9rem;
+  border-radius: 0 0.2rem 0.2rem 0;
+  background: linear-gradient(#8a9097, #565c63);
+}
+
+.plate {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: clamp(3rem, 12vw, 5.25rem);
+  background: var(--plate);
+  color: var(--on);
+  border-radius: 0.5rem;
+  box-shadow: inset 0 0 0 0.25rem rgb(0 0 0 / 0.16);
+  font-family: var(--font-display);
+  font-size: clamp(1.05rem, 3.4vw, 1.5rem);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-decoration: none;
+  writing-mode: vertical-rl;
+  transition: transform 0.15s ease-out;
+}
+
+/* diameters shrink along the sleeve, like a real loaded bar */
+.plate:nth-of-type(1) { height: 22rem; }
+.plate:nth-of-type(2) { height: 19.5rem; }
+.plate:nth-of-type(3) { height: 17rem; }
+.plate:nth-of-type(4) { height: 14.5rem; }
+.plate:nth-of-type(5) { height: 12rem; }
+
+.plate:hover,
+.plate:focus-visible { transform: translateY(-0.4rem); }
+
+/* the one orchestrated moment: plates are loaded onto the bar, biggest first */
+@media (prefers-reduced-motion: no-preference) {
+  .plate {
+    animation: load-plate 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+    animation-delay: calc(var(--i) * 90ms);
+  }
+}
+
+@keyframes load-plate {
+  from { opacity: 0; transform: translateX(3rem); }
+}

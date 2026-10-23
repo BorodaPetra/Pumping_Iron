@@ -9,30 +9,34 @@ from fastapi.templating import Jinja2Templates
 
 BASE_DIR = Path(__file__).parent
 
-# (url path, template name, navbar title); the order is the navbar order.
+# (url path, template name, navbar title, plate colour); the order is the navbar
+# and barbell order. The colour name maps to a `.plate-<name>` class in style.css.
 PAGES = [
-    ("/workouts", "workouts.html", "Тренировки"),
-    ("/body", "body.html", "Показатели"),
-    ("/assistant", "assistant.html", "АИ тренер"),
-    ("/meditation", "meditation.html", "Медитации"),
-    ("/stats", "stats.html", "Статистика"),
+    ("/workouts", "workouts.html", "Тренировки", "red"),
+    ("/body", "body.html", "Показатели", "blue"),
+    ("/assistant", "assistant.html", "АИ тренер", "yellow"),
+    ("/meditation", "meditation.html", "Медитации", "green"),
+    ("/stats", "stats.html", "Статистика", "white"),
 ]
 
 app = FastAPI(title="Pumping Iron")
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
-templates.env.globals["nav"] = [(path, title) for path, _, title in PAGES]
+templates.env.globals["nav"] = [
+    {"path": path, "title": title, "plate": plate} for path, _, title, plate in PAGES
+]
 
 
-def render(template: str):
+def render(template: str, plate: str | None = None):
     """Build a GET handler that renders `template` with the shared navbar context."""
 
     async def handler(request: Request) -> HTMLResponse:
-        return templates.TemplateResponse(request, template, {"current": request.url.path})
+        context = {"current": request.url.path, "plate": plate}
+        return templates.TemplateResponse(request, template, context)
 
     return handler
 
 
 app.add_api_route("/", render("index.html"), response_class=HTMLResponse)
-for path, template, _ in PAGES:
-    app.add_api_route(path, render(template), response_class=HTMLResponse)
+for path, template, _, plate in PAGES:
+    app.add_api_route(path, render(template, plate), response_class=HTMLResponse)

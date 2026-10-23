@@ -1,11 +1,15 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Pumping Iron</h1>
-<div class="cards">
-  <a class="card" href="/workouts"><h2>Тренировки</h2><p>Программа по дням и группам мышц, журнал.</p></a>
-  <a class="card" href="/body"><h2>Показатели</h2><p>Обхваты тела, динамика, рекомендации.</p></a>
-  <a class="card" href="/assistant"><h2>АИ тренер</h2><p>Персональный ассистент на локальной модели.</p></a>
-  <a class="card" href="/meditation"><h2>Медитации</h2><p>Восстановление и фокус.</p></a>
-  <a class="card" href="/stats"><h2>Статистика</h2><p>Графики и сводки.</p></a>
-</div>
+<section class="hero">
+  <h1>Что на штанге сегодня?</h1>
+  <p>Каждый блин ведёт в свой раздел.</p>
+  <div class="barbell">
+    <div class="bar"></div>
+    <div class="collar"></div>
+    {% for item in nav %}
+      <a class="plate plate-{{ item.plate }}" href="{{ item.path }}" style="--i: {{ loop.index0 }}">{{ item.title }}</a>
+    {% endfor %}
+    <div class="sleeve"></div>
+  </div>
+</section>
 {% endblock %}
