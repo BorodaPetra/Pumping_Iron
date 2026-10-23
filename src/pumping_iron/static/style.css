@@ -117,12 +117,15 @@ a:focus-visible {
 .theme-toggle .icon { width: 1.5rem; height: 1.5rem; vertical-align: middle; }
 
 .navbar .brand {
-  margin-right: 1rem;
+  margin-right: 0.2rem;
   color: var(--chalk);
-  font-family: var(--font-display);
-  font-size: 1.4rem;
-  font-weight: 700;
 }
+
+/* The poster lettering and the dumbbell are black-on-transparent PNGs used as masks, so they take the
+   text colour of the current theme (light on dark, dark on light). */
+.logo { display: block; flex: none; background-color: var(--chalk); mask-repeat: no-repeat; mask-position: center; mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center; -webkit-mask-size: contain; }
+.logo-title { width: 5.2rem; height: 2.9rem; -webkit-mask-image: url("img/logo-title.png"); mask-image: url("img/logo-title.png"); }
+.logo-dumbbell { width: 4.8rem; height: 2.8rem; margin-right: 1rem; -webkit-mask-image: url("img/logo-dumbbell.png"); mask-image: url("img/logo-dumbbell.png"); }
 
 /* ---------- section pages ---------- */
 
