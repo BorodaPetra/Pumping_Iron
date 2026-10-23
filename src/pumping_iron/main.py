@@ -55,6 +55,6 @@ async def index(request: Request, shift: int = 0) -> HTMLResponse:
 
 
 app.add_api_route("/", index, response_class=HTMLResponse)
-for path, template, _, plate in PAGES:
+for path, template, _, plate, _ in PAGES:
     if template:  # pages with a template None are served by a router
         app.add_api_route(path, render(template, plate), response_class=HTMLResponse)

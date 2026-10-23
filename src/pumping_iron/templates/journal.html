@@ -2,7 +2,7 @@
 {% from "_forms.html" import exercise_select, workouts_tabs %}
 {% block title %}Журнал · Pumping Iron{% endblock %}
 {% block content %}
-<h1>Журнал</h1>
+<h1 class="sr-only">Журнал</h1>
 {{ workouts_tabs(current) }}
 
 <form class="log-form" method="post" action="/workouts/log">

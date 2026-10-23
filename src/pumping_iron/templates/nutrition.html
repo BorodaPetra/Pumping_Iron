@@ -2,7 +2,7 @@
 {% from "_forms.html" import nutrition_tabs %}
 {% block title %}Питание · Pumping Iron{% endblock %}
 {% block content %}
-<h1>Питание</h1>
+<h1 class="sr-only">Питание</h1>
 {{ nutrition_tabs(current) }}
 <p class="totals">
   В день: {{ totals.kcal }} ккал · белки {{ '%g'|format(totals.protein_g) }} г · жиры {{ '%g'|format(totals.fat_g) }} г · углеводы {{ '%g'|format(totals.carbs_g) }} г

@@ -77,15 +77,8 @@ a:focus-visible {
 .navbar a[aria-current="page"] { color: var(--chalk); }
 .navbar a[aria-current="page"] { border-bottom-color: var(--plate); }
 
-/* small plate disc in front of each section link */
-.navbar a[class*="plate-"]::before {
-  content: "";
-  width: 0.7rem;
-  height: 0.7rem;
-  border-radius: 50%;
-  background: var(--plate);
-  box-shadow: inset 0 0 0 0.15rem rgb(0 0 0 / 0.22);
-}
+/* icon in the section's plate colour in front of each section link */
+.navbar a .icon { color: var(--plate); }
 
 .navbar .brand {
   margin-right: 1rem;
@@ -99,17 +92,8 @@ a:focus-visible {
 
 main { max-width: 64rem; margin: 2.5rem auto; padding: 0 1.5rem; }
 
-/* coloured slab in front of the page title = the section's plate */
-main[class*="plate-"] h1::before {
-  content: "";
-  display: inline-block;
-  width: 0.8rem;
-  height: 0.9em;
-  margin-right: 0.7rem;
-  border-radius: 0.2rem;
-  background: var(--plate);
-  vertical-align: -0.05em;
-}
+/* the page title repeats the navbar label, so it is kept for screen readers only */
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 main p { max-width: 60ch; color: var(--muted); }
 

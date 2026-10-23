@@ -11,20 +11,20 @@ from pumping_iron.icons import icon
 BASE_DIR = Path(__file__).parent
 
 # (url path, template name or None when a router renders the page, navbar title,
-# plate colour); the order is the navbar and barbell order. The colour name maps
-# to a `.plate-<name>` class in style.css.
+# plate colour, navbar icon name from icons.py); the order is the navbar and barbell
+# order. The colour name maps to a `.plate-<name>` class in style.css.
 PAGES = [
-    ("/workouts", None, "Тренировки", "red"),
-    ("/body", None, "Показатели", "blue"),
-    ("/assistant", None, "АИ тренер", "yellow"),
-    ("/meditation", "meditation.html", "Медитации", "green"),
-    ("/stats", None, "Статистика", "white"),
-    ("/nutrition", None, "Питание", "orange"),
+    ("/workouts", None, "Тренировки", "red", "dumbbell"),
+    ("/body", None, "Показатели", "blue", "ruler"),
+    ("/assistant", None, "АИ тренер", "yellow", "bot"),
+    ("/meditation", "meditation.html", "Медитации", "green", "moon"),
+    ("/stats", None, "Статистика", "white", "chart"),
+    ("/nutrition", None, "Питание", "orange", "utensils"),
 ]
 
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
 templates.env.globals["nav"] = [
-    {"path": path, "title": title, "plate": plate} for path, _, title, plate in PAGES
+    {"path": path, "title": title, "plate": plate, "icon": icon_name} for path, _, title, plate, icon_name in PAGES
 ]
 templates.env.globals["icon"] = icon
 

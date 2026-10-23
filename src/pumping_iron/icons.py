@@ -23,6 +23,8 @@ ICONS = {
     "column": '<path d="M4 20h16M6 20V9M10 20V9M14 20V9M18 20V9M3 9h18L12 4z"/>',
     "flame": '<path d="M12 3c1 4 5 5 5 10a5 5 0 01-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-5 1-9z"/>',
     "info": '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/>',
+    "bot": '<rect x="4" y="8" width="16" height="11" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9.5 16.5h5"/>',
+    "chart": '<path d="M4 20h16M7 20v-7M12 20V6M17 20v-10"/>',
     "shuffle": '<path d="M16 4h4v4M20 4l-5.5 5.5M4 20l16-16M16 20h4v-4M20 20l-5-5M4 4l5 5"/>',
 }
 

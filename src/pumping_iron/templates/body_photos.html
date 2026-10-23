@@ -2,7 +2,7 @@
 {% from "_forms.html" import body_tabs %}
 {% block title %}Фото · Pumping Iron{% endblock %}
 {% block content %}
-<h1>Показатели</h1>
+<h1 class="sr-only">Показатели</h1>
 {{ body_tabs(current) }}
 
 <p>Фото для сравнения прогресса: одно освещение, одна поза, одно время суток. Напоминание появляется, когда прошло {{ reminder_days }} дней с последнего фото. Файлы хранятся только на этом компьютере.</p>
