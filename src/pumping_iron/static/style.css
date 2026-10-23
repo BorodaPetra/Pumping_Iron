@@ -585,7 +585,7 @@ input.entry {
 /* The muscle map takes the middle 43.4 % of the box; labels sit in the side columns at the
    same percentages that body.py uses for the leader lines (keep BODY_LEFT, BODY_WIDTH and the
    aspect-ratio below in step with it). */
-.body-figure { position: relative; width: 100%; max-width: 40rem; aspect-ratio: 1 / 0.8593; margin: 1.5rem auto 0.5rem; }
+.body-figure { position: relative; width: 100%; max-width: 40rem; aspect-ratio: 1 / 0.8593; margin: 1.5rem 0 0.5rem; }
 .fig-body { position: absolute; left: 28.3%; top: 0; width: 43.4%; height: 100%; }
 .fig-body polygon { fill: var(--steel-light); stroke: var(--steel); stroke-width: 4; stroke-linejoin: round; }
 .fig-body .reg-good polygon { fill: var(--good); }
@@ -610,7 +610,7 @@ input.entry {
 .fig-right { right: 0; text-align: left; }
 .fig-name { color: var(--muted); }
 .fig-value { font-weight: 600; display: flex; align-items: baseline; gap: 0.3em; }
-.fig-note { text-align: center; max-width: 40rem; margin: 0 auto 2rem; }
+.fig-note { max-width: 40rem; margin: 0 0 2rem; }
 
 .photo-form { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-top: 0.75rem; }
 .photo-day h2 { margin: 1.75rem 0 0.5rem; font-size: 1.25rem; }
