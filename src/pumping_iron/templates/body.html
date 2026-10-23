@@ -8,7 +8,7 @@
 <input class="entry" type="number" name="{{ t.key }}" step="0.1" min="{{ '%g'|format(t.min_val) }}" max="{{ '%g'|format(t.max_val) }}"
        value="{{ '%g'|format(s.value) if s else '' }}" placeholder="—" aria-label="{{ t.name }}, {{ t.unit }}"
        data-better="{{ t.better }}"{% if s and s.base is not none %} data-base="{{ s.base }}"{% endif %}>
-<span class="pct tone-{{ s.tone if s else 'flat' }}" data-for="{{ t.key }}">{% if s and s.pct_text %}({{ s.pct_text }}){% endif %}</span>
+<span class="pct tone-{{ s.tone if s else 'flat' }}" data-for="{{ t.key }}">{% if s and s.pct_text %}({{ s.arrow ~ ' ' if s.arrow }}{{ s.pct_text }}){% endif %}</span>
 {% endmacro %}
 
 {% block content %}
@@ -16,7 +16,7 @@
 {{ body_tabs(current) }}
 
 <nav class="periods" aria-label="Период сравнения">
-  <span class="muted">Изменение за:</span>
+  <span class="muted">{{ icon('calendar') }} Изменение за:</span>
   {% for days, label in periods %}
     <a href="/body?period={{ days }}"{% if days == period %} aria-current="true"{% endif %}>{{ label }}</a>
   {% endfor %}
@@ -57,10 +57,10 @@
     {% endfor %}
   </div>
 
-  <p class="muted fig-note">Обхваты в сантиметрах. Л и П: левая и правая сторона человека. В скобках изменение за выбранный период. Зелёная зона: сдвиг в нужную сторону, красная: в обратную, серая: без изменений. Впиши новое значение прямо у фигуры: процент пересчитается сразу, а в базу оно попадёт после нажатия кнопки.</p>
+  <p class="muted fig-note">{{ icon('info') }} Обхваты в сантиметрах. Л и П: левая и правая сторона человека. В скобках изменение за выбранный период. Зелёная зона: сдвиг в нужную сторону, красная: в обратную, серая: без изменений. Впиши новое значение прямо у фигуры: процент пересчитается сразу, а в базу оно попадёт после нажатия кнопки.</p>
 
   <div class="save-row">
-    <button class="btn" type="submit" id="save-measures">Сохранить замеры</button>
+    <button class="btn" type="submit" id="save-measures">{{ icon('check') }} Сохранить замеры</button>
     <span class="muted">Запишутся только изменённые поля, датой {{ today }}. Повторное сохранение за этот день заменяет значение.</span>
   </div>
 </form>
@@ -77,7 +77,7 @@
           <th scope="row">{{ t.name }}</th>
           {% if s %}
             <td>{{ '%g'|format(s.value) }} {{ t.unit }}</td><td>{{ s.date }}</td>
-            <td>{% if s.pct_text %}<span class="pct tone-{{ s.tone }}">{{ s.pct_text }}</span>{% else %}<span class="muted">нужен ещё замер</span>{% endif %}</td>
+            <td>{% if s.pct_text %}<span class="pct tone-{{ s.tone }}">{{ s.arrow ~ ' ' if s.arrow }}{{ s.pct_text }}</span>{% else %}<span class="muted">нужен ещё замер</span>{% endif %}</td>
           {% else %}
             <td class="muted" colspan="3">нет данных</td>
           {% endif %}

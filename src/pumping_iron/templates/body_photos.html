@@ -8,7 +8,7 @@
 <p>Фото для сравнения прогресса: одно освещение, одна поза, одно время суток. Напоминание появляется, когда прошло {{ reminder_days }} дней с последнего фото. Файлы хранятся только на этом компьютере.</p>
 
 <details class="add"{% if not groups %} open{% endif %}>
-  <summary>Добавить фото</summary>
+  <summary>{{ icon('plus') }} Добавить фото</summary>
   <form class="photo-form" method="post" action="/body/photos" enctype="multipart/form-data">
     <input type="file" name="file" accept="image/jpeg,image/png,image/webp" aria-label="Файл" required>
     <input type="date" name="taken_on" value="{{ today }}" max="{{ today }}" aria-label="Дата" required>
@@ -16,7 +16,7 @@
       {% for p in poses %}<option>{{ p }}</option>{% endfor %}
     </select>
     <input type="text" name="note" maxlength="200" placeholder="Заметка (необязательно)" aria-label="Заметка">
-    <button class="btn" type="submit">Загрузить</button>
+    <button class="btn" type="submit">{{ icon('camera') }} Загрузить</button>
   </form>
 </details>
 
@@ -29,7 +29,7 @@
           <a href="/body/photos/{{ p.id }}/file"><img src="/body/photos/{{ p.id }}/file" alt="Фото, {{ p.pose }}, {{ p.taken_on }}" loading="lazy"></a>
           <figcaption>
             <span>{{ p.pose }}{% if p.note %}: {{ p.note }}{% endif %}</span>
-            <form method="post" action="/body/photos/{{ p.id }}/delete"><button class="btn-quiet" type="submit">Удалить</button></form>
+            <form method="post" action="/body/photos/{{ p.id }}/delete"><button class="btn-quiet" type="submit">{{ icon('trash') }} Удалить</button></form>
           </figcaption>
         </figure>
       {% endfor %}

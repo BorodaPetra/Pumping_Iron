@@ -32,7 +32,7 @@
           <input type="hidden" name="eaten_on" value="{{ day }}">
           <span class="item-name">{{ item.food }}<small>{{ item.grams }} г</small></span>
           <span class="item-load">{{ item.kcal }} ккал · Б {{ '%g'|format(item.protein_g) }} · Ж {{ '%g'|format(item.fat_g) }} · У {{ '%g'|format(item.carbs_g) }}</span>
-          <button class="btn-quiet" type="submit">Убрать</button>
+          <button class="btn-quiet" type="submit">{{ icon('trash') }} Убрать</button>
         </form>
       {% else %}
         <p class="rest">Ничего не записано.</p>
@@ -51,7 +51,7 @@
       {% endif %}
 
       <details class="add">
-        <summary>Добавить другое</summary>
+        <summary>{{ icon('plus') }} Добавить другое</summary>
         <form method="post" action="/nutrition/log/add">
           <input type="hidden" name="eaten_on" value="{{ day }}">
           <input type="hidden" name="meal" value="{{ meal.meal }}">
@@ -61,7 +61,7 @@
           <input type="number" name="protein_g" placeholder="Б" min="0" max="500" step="0.1" aria-label="Белки, г" required>
           <input type="number" name="fat_g" placeholder="Ж" min="0" max="500" step="0.1" aria-label="Жиры, г" required>
           <input type="number" name="carbs_g" placeholder="У" min="0" max="1000" step="0.1" aria-label="Углеводы, г" required>
-          <button class="btn" type="submit">Записать</button>
+          <button class="btn" type="submit">{{ icon('check') }} Записать</button>
         </form>
       </details>
     </div>

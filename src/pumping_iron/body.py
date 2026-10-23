@@ -92,13 +92,14 @@ def summarize(series: list[tuple[str, float]], period: int, better: str) -> dict
 
     `series` is [(ISO date, value)] sorted by date; `period` is days back from the latest
     date (0 = from the first measurement); `better` is "up", "down" or "none".
-    Returns {value, date, pct_text, tone, base}; pct_text is empty when there is no earlier
-    value to compare with. tone is "good", "bad" or "flat" (no judgement or no change).
+    Returns {value, date, pct_text, tone, arrow, base}; pct_text is empty when there is no earlier
+    value to compare with. tone is "good", "bad" or "flat" (no judgement or no change);
+    arrow is ▲ / ▼ for a rise / fall of at least 0.05 %, else empty.
     `base` is the number a value typed on the page today is compared with (see body.js):
     the baseline, or the latest value when it is from an earlier day, else None.
     """
     latest_date, latest = series[-1]
-    summary = {"value": latest, "date": latest_date, "pct_text": "", "tone": "flat",
+    summary = {"value": latest, "date": latest_date, "pct_text": "", "tone": "flat", "arrow": "",
                "base": latest if latest_date != date.today().isoformat() else None}
     cutoff = date.fromisoformat(latest_date) - timedelta(days=period) if period else None
     # PERF: the series is already sorted, so bisect on the date strings would find the
@@ -109,6 +110,7 @@ def summarize(series: list[tuple[str, float]], period: int, better: str) -> dict
     summary["base"] = baseline[1]
     pct = (latest - baseline[1]) / baseline[1] * 100
     summary["pct_text"] = f"{pct:+.1f} %".replace("-", "−")
+    summary["arrow"] = "▲" if pct >= 0.05 else "▼" if pct <= -0.05 else ""
     if abs(pct) >= 0.05 and better != "none":
         summary["tone"] = "good" if (pct > 0) == (better == "up") else "bad"
     return summary

@@ -6,6 +6,8 @@ from fastapi import Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
+from pumping_iron.icons import icon
+
 BASE_DIR = Path(__file__).parent
 
 # (url path, template name or None when a router renders the page, navbar title,
@@ -24,6 +26,7 @@ templates = Jinja2Templates(directory=BASE_DIR / "templates")
 templates.env.globals["nav"] = [
     {"path": path, "title": title, "plate": plate} for path, _, title, plate in PAGES
 ]
+templates.env.globals["icon"] = icon
 
 
 def page(request: Request, template: str, plate: str | None = None, **context) -> HTMLResponse:

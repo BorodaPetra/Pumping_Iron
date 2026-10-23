@@ -26,16 +26,16 @@
             <input type="number" name="weight_kg" value="{{ '%g'|format(item.weight_kg) }}" min="0" max="1000" step="0.5" aria-label="Вес, кг" required> кг
           </span>
           <span class="item-actions">
-            <button class="btn" type="submit">Сохранить</button>
-            <button class="btn-quiet" type="submit" formaction="/workouts/program/{{ item.id }}/delete" formnovalidate>Убрать</button>
+            <button class="btn" type="submit">{{ icon('check') }} Сохранить</button>
+            <button class="btn-quiet" type="submit" formaction="/workouts/program/{{ item.id }}/delete" formnovalidate>{{ icon('trash') }} Убрать</button>
           </span>
         </form>
       {% else %}
-        <p class="rest">День отдыха. Добавь упражнение, если хочешь тренироваться.</p>
+        <p class="rest">{{ icon('moon') }} День отдыха. Добавь упражнение, если хочешь тренироваться.</p>
       {% endfor %}
 
       <details class="add">
-        <summary>Добавить упражнение</summary>
+        <summary>{{ icon('plus') }} Добавить упражнение</summary>
         <form method="post" action="/workouts/program/add">
           <input type="hidden" name="weekday" value="{{ loop.index0 }}">
           {{ exercise_select(options) }}
@@ -44,7 +44,7 @@
           <input type="number" name="reps" value="10" min="1" max="100" aria-label="Повторения" required>
           ·
           <input type="number" name="weight_kg" value="0" min="0" max="1000" step="0.5" aria-label="Вес, кг" required> кг
-          <button class="btn" type="submit">Добавить</button>
+          <button class="btn" type="submit">{{ icon('plus') }} Добавить</button>
         </form>
       </details>
     </div>
@@ -53,13 +53,13 @@
 </div>
 
 <details class="add library">
-  <summary>Новое упражнение в справочник</summary>
+  <summary>{{ icon('plus') }} Новое упражнение в справочник</summary>
   <form method="post" action="/workouts/exercises">
     <input type="text" name="name" placeholder="Название" maxlength="80" aria-label="Название" required>
     <select name="muscle_group_id" aria-label="Группа мышц" required>
       {% for g in groups %}<option value="{{ g.id }}">{{ g.name }}</option>{% endfor %}
     </select>
-    <button class="btn" type="submit">Создать</button>
+    <button class="btn" type="submit">{{ icon('plus') }} Создать</button>
   </form>
 </details>
 {% endblock %}

@@ -18,7 +18,7 @@
   </nav>
   {% set reminder = photo_reminder() %}
   {% if reminder %}
-    <div class="reminder" role="status">{{ reminder }} <a href="/body/photos">Добавить фото</a></div>
+    <div class="reminder" role="status">{{ icon('camera') }} {{ reminder }} <a href="/body/photos">Добавить фото</a></div>
   {% endif %}
   <main{% if plate %} class="plate-{{ plate }}"{% endif %}>{% block content %}{% endblock %}</main>
 </body>

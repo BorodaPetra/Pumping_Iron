@@ -27,7 +27,8 @@
     const base = parseFloat(input.dataset.base);
     if (Number.isNaN(value) || Number.isNaN(base) || base === 0) return null;
     const pct = ((value - base) / base) * 100;
-    const text = `(${(pct >= 0 ? "+" : "") + pct.toFixed(1)} %)`.replace("-", "−");
+    const arrow = pct >= 0.05 ? "▲ " : pct <= -0.05 ? "▼ " : "";  // same as `arrow` in summarize()
+    const text = `(${arrow}${(pct >= 0 ? "+" : "") + pct.toFixed(1)} %)`.replace("-", "−");
     return [text, tone(pct, input.dataset.better)];
   }
 

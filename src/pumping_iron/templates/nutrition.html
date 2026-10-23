@@ -22,14 +22,14 @@
         <form class="item" method="post" action="/nutrition/{{ item.id }}/delete">
           <span class="item-name">{{ item.food }}<small>{{ item.grams }} г</small></span>
           <span class="item-load">{{ item.kcal }} ккал · Б {{ '%g'|format(item.protein_g) }} · Ж {{ '%g'|format(item.fat_g) }} · У {{ '%g'|format(item.carbs_g) }}</span>
-          <button class="btn-quiet" type="submit">Убрать</button>
+          <button class="btn-quiet" type="submit">{{ icon('trash') }} Убрать</button>
         </form>
       {% else %}
         <p class="rest">Пока пусто. Добавь продукт или попроси ИИ тренера составить рацион.</p>
       {% endfor %}
 
       <details class="add">
-        <summary>Добавить продукт</summary>
+        <summary>{{ icon('plus') }} Добавить продукт</summary>
         <form method="post" action="/nutrition/add">
           <input type="hidden" name="meal" value="{{ meal.meal }}">
           <input type="text" name="food" placeholder="Продукт" maxlength="80" aria-label="Продукт" required>
@@ -38,7 +38,7 @@
           <input type="number" name="protein_g" placeholder="Б" min="0" max="500" step="0.1" aria-label="Белки, г" required>
           <input type="number" name="fat_g" placeholder="Ж" min="0" max="500" step="0.1" aria-label="Жиры, г" required>
           <input type="number" name="carbs_g" placeholder="У" min="0" max="1000" step="0.1" aria-label="Углеводы, г" required>
-          <button class="btn" type="submit">Добавить</button>
+          <button class="btn" type="submit">{{ icon('plus') }} Добавить</button>
         </form>
       </details>
     </div>

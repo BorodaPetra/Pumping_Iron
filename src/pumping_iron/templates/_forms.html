@@ -14,23 +14,23 @@
 </select>
 {% endmacro %}
 
-{# Sub-navigation inside a section; `tabs` is a list of (path, label). #}
+{# Sub-navigation inside a section; `tabs` is a list of (path, label, icon name). #}
 {% macro section_tabs(tabs, current) %}
 <div class="tabs">
-  {% for path, label in tabs %}
-    <a href="{{ path }}"{% if current == path %} aria-current="page"{% endif %}>{{ label }}</a>
+  {% for path, label, icon_name in tabs %}
+    <a href="{{ path }}"{% if current == path %} aria-current="page"{% endif %}>{{ icon(icon_name) }} {{ label }}</a>
   {% endfor %}
 </div>
 {% endmacro %}
 
 {% macro workouts_tabs(current) %}
-{{ section_tabs([('/workouts', 'Программа'), ('/workouts/journal', 'Журнал')], current) }}
+{{ section_tabs([('/workouts', 'Программа', 'dumbbell'), ('/workouts/journal', 'Журнал', 'notebook')], current) }}
 {% endmacro %}
 
 {% macro nutrition_tabs(current) %}
-{{ section_tabs([('/nutrition', 'Рацион'), ('/nutrition/log', 'Дневник')], current) }}
+{{ section_tabs([('/nutrition', 'Рацион', 'utensils'), ('/nutrition/log', 'Дневник', 'notebook')], current) }}
 {% endmacro %}
 
 {% macro body_tabs(current) %}
-{{ section_tabs([('/body', 'Замеры'), ('/body/photos', 'Фото')], current) }}
+{{ section_tabs([('/body', 'Замеры', 'ruler'), ('/body/photos', 'Фото', 'image')], current) }}
 {% endmacro %}

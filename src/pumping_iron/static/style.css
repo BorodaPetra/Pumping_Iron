@@ -251,6 +251,9 @@ main p { max-width: 60ch; color: var(--muted); }
   border-radius: 0.5rem;
   font: 600 1rem var(--font-display);
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
 }
 
 .chat-form button:disabled { opacity: 0.5; cursor: wait; }
@@ -276,7 +279,15 @@ input:focus-visible, select:focus-visible { outline: 3px solid var(--plate, var(
   border-radius: 0.4rem;
   font: 600 0.95rem var(--font-display);
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
 }
+
+/* Inline icons (icons.py) follow the colour and size of the text next to them. */
+.icon { width: 1.15em; height: 1.15em; flex: none; vertical-align: -0.2em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.tabs a .icon, .periods .icon, .reminder .icon, .fig-note .icon, .add summary .icon, .rest .icon { margin-right: 0.15em; }
+.fig-note .icon { vertical-align: -0.25em; }
 
 .btn { background: var(--plate); color: var(--on); }
 .btn-quiet { background: transparent; color: var(--muted); }
@@ -397,7 +408,7 @@ input:focus-visible, select:focus-visible { outline: 3px solid var(--plate, var(
 .tile .entry { font: 700 1.6rem var(--font-display); width: 4.5em; }
 
 /* Numbers typed next to the figure: look like text, show a dashed underline, light up when changed. */
-.entry {
+input.entry {
   font: inherit;
   font-weight: 600;
   color: var(--chalk);
