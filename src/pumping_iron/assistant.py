@@ -36,7 +36,7 @@ SYSTEM_PROMPT = (
     "Если данных не хватает, задай один уточняющий вопрос. При боли, травмах и "
     "заболеваниях советуй обратиться к врачу, не ставь диагнозов.\n\n"
     "У тебя есть инструменты. Когда пользователь просит составить или дополнить программу тренировок, "
-    "добавляй упражнения сам через add_to_program: по одному вызову на упражнение, с днём недели, "
+    "добавляй упражнения сам через add_to_program: по одному вызову на упражнение (можно несколько вызовов в одном ответе), с днём недели, "
     "подходами, повторениями и рабочим весом. Когда он просит составить или дополнить рацион, "
     "добавляй продукты сам через add_to_diet. Не дублируй то, что уже есть в программе или рационе. "
     "Для обычных вопросов и советов инструменты не нужны. После вызовов коротко перечисли, что добавлено. "
@@ -60,15 +60,43 @@ class ChatRequest(BaseModel):
     messages: list[Message]
 
 
+def event(kind: str, value: str) -> str:
+    """Encode one stream event as an NDJSON line.
+
+    `kind` is "text" (model output, goes into the chat history), "notice" (what the server
+    changed, shown to the user only) or "error" (shown only, nothing is saved).
+    """
+    return json.dumps({"type": kind, "value": value}, ensure_ascii=False) + "\n"
+
+
+def parse_sse_line(line: str) -> dict | None:
+    """Return the JSON object of an SSE `data:` line, or None for anything else.
+
+    Skips non-data lines, the `[DONE]` marker, empty payloads and lines that are not
+    valid JSON (for example a truncated chunk), so one bad line cannot kill the stream.
+    """
+    if not line.startswith("data:"):
+        return None
+    data = line[5:].strip()
+    if not data or data == "[DONE]":
+        return None
+    try:
+        payload = json.loads(data)
+    except json.JSONDecodeError:
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
 async def stream_reply(messages: list[Message]) -> AsyncIterator[str]:
-    """Yield the trainer's reply as text chunks, running tool calls along the way.
+    """Yield the trainer's reply as NDJSON events, running tool calls along the way.
 
     Takes the conversation history. Each round calls LM Studio with `stream=true` and
     forwards the text of every SSE chunk; tool-call fragments are collected per call
     index. If the round ended with tool calls, they are executed against the database,
-    a notice line per successful change is yielded to the user, and the results are sent
-    back to the model for the next round. If LM Studio is unreachable or fails, a single
-    human-readable error line is yielded so the page can show it.
+    a "notice" event per successful change is yielded, and the results are sent back to
+    the model for the next round. The last allowed round is sent without tools, so the
+    model has to finish with a text answer. An error reported by LM Studio, an
+    unreachable server or an HTTP failure becomes a single "error" event.
     """
     db = connect()
     try:
@@ -78,22 +106,29 @@ async def stream_reply(messages: list[Message]) -> AsyncIterator[str]:
         # PERF: one shared AsyncClient (created at app startup) reuses the TCP connection
         # to LM Studio instead of opening a new one per message.
         async with httpx.AsyncClient(timeout=httpx.Timeout(300, connect=5)) as client:
-            for _ in range(MAX_TOOL_ROUNDS):
-                payload = {"model": LMSTUDIO_MODEL, "stream": True, "tools": TOOLS, "messages": payload_messages}
+            for round_number in range(MAX_TOOL_ROUNDS):
+                payload = {"model": LMSTUDIO_MODEL, "stream": True, "messages": payload_messages}
+                if round_number < MAX_TOOL_ROUNDS - 1:
+                    payload["tools"] = TOOLS
                 text, calls = "", {}
                 async with client.stream("POST", f"{LMSTUDIO_URL}/chat/completions", json=payload) as resp:
                     resp.raise_for_status()
                     async for line in resp.aiter_lines():
-                        # SSE lines look like `data: {...}`; the stream ends with `data: [DONE]`.
-                        if not line.startswith("data: ") or line.endswith("[DONE]"):
+                        chunk = parse_sse_line(line)
+                        if chunk is None:
                             continue
-                        choices = json.loads(line[6:]).get("choices")
+                        if "error" in chunk:
+                            error = chunk["error"]
+                            message = error.get("message") if isinstance(error, dict) else error
+                            yield event("error", f"Ошибка LM Studio: {message}")
+                            return
+                        choices = chunk.get("choices")
                         if not choices:
                             continue
-                        delta = choices[0]["delta"]
+                        delta = choices[0].get("delta") or {}
                         if delta.get("content"):
                             text += delta["content"]
-                            yield delta["content"]
+                            yield event("text", delta["content"])
                         # A tool call arrives in fragments: the name once, the JSON arguments in pieces.
                         for fragment in delta.get("tool_calls") or []:
                             call = calls.setdefault(fragment.get("index", 0), {"id": "", "name": "", "arguments": ""})
@@ -118,19 +153,21 @@ async def stream_reply(messages: list[Message]) -> AsyncIterator[str]:
                     # asyncio.to_thread(run_tool, ...) would keep it free under load.
                     result, notice = run_tool(db, call["name"], call["arguments"])
                     if notice:
-                        yield f"\n{notice}\n"
+                        yield event("notice", notice)
                     payload_messages.append(
                         {"role": "tool", "tool_call_id": call["id"] or f"call_{index}", "content": result}
                     )
+            # Every round ended with tool calls, even the one sent without tools.
+            yield event("error", "Достигнут лимит шагов, модель так и не дала итогового ответа.")
     except httpx.ConnectError:
-        yield f"[LM Studio недоступен по адресу {LMSTUDIO_URL}. Запусти локальный сервер в LM Studio.]"
+        yield event("error", f"LM Studio недоступен по адресу {LMSTUDIO_URL}. Запусти локальный сервер в LM Studio.")
     except httpx.HTTPError as exc:
-        yield f"[Ошибка LM Studio: {exc}]"
+        yield event("error", f"Ошибка LM Studio: {exc}")
     finally:
         db.close()
 
 
 @router.post("/chat")
 async def chat(request: ChatRequest) -> StreamingResponse:
-    """Stream the trainer's answer to the conversation as plain UTF-8 text."""
-    return StreamingResponse(stream_reply(request.messages), media_type="text/plain; charset=utf-8")
+    """Stream the trainer's answer as NDJSON events (one JSON object per line, see `event`)."""
+    return StreamingResponse(stream_reply(request.messages), media_type="application/x-ndjson; charset=utf-8")

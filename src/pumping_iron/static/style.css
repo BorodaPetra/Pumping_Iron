@@ -366,3 +366,13 @@ input:focus-visible, select:focus-visible { outline: 3px solid var(--plate, var(
 .history th, .history td { padding: 0.4rem 0.75rem 0.4rem 0; text-align: left; border-bottom: 1px solid var(--steel-light); }
 .history thead th { color: var(--muted); font-weight: 400; font-size: 0.9rem; }
 .history a { color: var(--chalk); text-decoration-color: var(--plate); }
+
+/* what the server changed (or failed to do) during a reply, shown apart from the model's text */
+.notice {
+  margin: 0.4rem 0;
+  padding-left: 0.6rem;
+  border-left: 3px solid var(--plate);
+  font-size: 0.9rem;
+}
+
+.notice-error { border-left-color: var(--red); color: var(--muted); }

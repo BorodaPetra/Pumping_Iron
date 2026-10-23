@@ -13,6 +13,9 @@ from datetime import date
 from pumping_iron.nutrition import MEALS, build_diet
 from pumping_iron.workouts import WEEKDAYS, build_week, exercise_options
 
+# Same limit as the web forms (nutrition.py, workouts.py), so the model cannot create longer names.
+MAX_NAME_LEN = 80
+
 ADD_TO_PROGRAM_TOOL = {
     "type": "function",
     "function": {
@@ -98,6 +101,15 @@ def build_context(db: sqlite3.Connection) -> str:
     )
 
 
+def _clean_name(value) -> str:
+    """Collapse all whitespace (newlines included) in a name from the model into single spaces.
+
+    Names end up in the system prompt on later requests, so line breaks are removed
+    to keep a stored name from looking like an instruction block.
+    """
+    return " ".join(str(value).split())
+
+
 def _error(message: str) -> tuple[str, None]:
     """Build a failed tool result: the model gets the reason, the user sees nothing."""
     return json.dumps({"ok": False, "error": message}, ensure_ascii=False), None
@@ -114,11 +126,13 @@ def add_to_program(db: sqlite3.Connection, args: dict) -> tuple[str, str | None]
         weekday = int(args["weekday"])
         sets, reps = int(args["sets"]), int(args["reps"])
         weight = float(args.get("weight_kg") or 0)
-        name = str(args["exercise"]).strip()
+        name = _clean_name(args["exercise"])
     except (KeyError, TypeError, ValueError):
         return _error("нужны weekday, exercise, sets, reps (числа) и необязательный weight_kg")
     if not (1 <= weekday <= 7 and 1 <= sets <= 20 and 1 <= reps <= 100 and 0 <= weight <= 1000 and name):
         return _error("значения вне допустимых диапазонов: weekday 1-7, sets 1-20, reps 1-100, weight_kg 0-1000")
+    if len(name) > MAX_NAME_LEN:
+        return _error(f"название упражнения длиннее {MAX_NAME_LEN} символов")
 
     # SQLite lower() is ASCII-only, so names are compared with casefold() in Python.
     library = {row["name"].casefold(): row for row in db.execute("SELECT id, name FROM exercises")}
@@ -155,13 +169,15 @@ def add_to_diet(db: sqlite3.Connection, args: dict) -> tuple[str, str | None]:
     notice for the user or None on failure). The same food in the same meal is rejected.
     """
     try:
-        meal, food = str(args["meal"]).strip(), str(args["food"]).strip()
+        meal, food = str(args["meal"]).strip(), _clean_name(args["food"])
         grams, kcal = int(args["grams"]), int(args["kcal"])
         protein, fat, carbs = (float(args[k]) for k in ("protein_g", "fat_g", "carbs_g"))
     except (KeyError, TypeError, ValueError):
         return _error("нужны meal, food, grams, kcal, protein_g, fat_g, carbs_g (числа)")
     if meal not in MEALS:
         return _error(f"meal должен быть одним из: {', '.join(MEALS)}")
+    if len(food) > MAX_NAME_LEN:
+        return _error(f"название продукта длиннее {MAX_NAME_LEN} символов")
     if not (food and 1 <= grams <= 5000 and 0 <= kcal <= 5000 and 0 <= protein <= 500 and 0 <= fat <= 500 and 0 <= carbs <= 1000):
         return _error("значения вне допустимых диапазонов: grams 1-5000, kcal 0-5000, белки/жиры 0-500, углеводы 0-1000")
     if any(row["food"].casefold() == food.casefold()
