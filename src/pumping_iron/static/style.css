@@ -15,18 +15,40 @@
   --orange: #d9722b;
   --good: #6fcf97;  /* readable on the dark background, unlike the plate green */
   --bad: #f08a80;
+  --warn: var(--yellow);
+
+  /* the same in both themes: text on a bright / on a dark plate */
+  --ink: #1a1d21;
+  --paper: #ece9e2;
 
   --font-display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
   --font-body: "IBM Plex Sans", system-ui, sans-serif;
+  color-scheme: dark;
 }
 
-/* A section picks its plate colour by class; --on is the readable text colour on it. */
-.plate-red    { --plate: var(--red);    --on: var(--chalk); }
-.plate-blue   { --plate: var(--blue);   --on: var(--chalk); }
-.plate-yellow { --plate: var(--yellow); --on: var(--steel-deep); }
-.plate-green  { --plate: var(--green);  --on: var(--chalk); }
+/* Light theme: theme.js sets data-theme on <html> (saved choice, else the system setting). */
+:root[data-theme="light"] {
+  --steel: #f4f2ed;
+  --steel-deep: #e8e5de;
+  --steel-light: #cdc9c0;
+  --chalk: #1f2328;
+  --muted: #5b6168;
+  --yellow: #d4a512;
+  --white: #3a4048;
+  --good: #1e7d48;
+  --bad: #b3392f;
+  --warn: #8a6500;
+  color-scheme: light;
+}
+
+/* A section picks its plate colour by class; --on is the readable text colour on it.
+   The white plate flips with the theme, so its text colour is the background colour of the navbar. */
+.plate-red    { --plate: var(--red);    --on: var(--paper); }
+.plate-blue   { --plate: var(--blue);   --on: var(--paper); }
+.plate-yellow { --plate: var(--yellow); --on: var(--ink); }
+.plate-green  { --plate: var(--green);  --on: var(--paper); }
 .plate-white  { --plate: var(--white);  --on: var(--steel-deep); }
-.plate-orange { --plate: var(--orange); --on: var(--steel-deep); }
+.plate-orange { --plate: var(--orange); --on: var(--ink); }
 
 * { box-sizing: border-box; }
 
@@ -80,6 +102,20 @@ a:focus-visible {
 
 /* icon in the section's plate colour in front of each section link */
 .navbar a .icon { width: 1.5rem; height: 1.5rem; color: var(--plate); }
+
+/* light / dark switch at the right end of the navbar (theme.js) */
+.theme-toggle {
+  margin-left: auto;
+  padding: 0.3rem;
+  background: none;
+  border: 0;
+  border-radius: 0.4rem;
+  color: var(--muted);
+  cursor: pointer;
+}
+.theme-toggle:hover { color: var(--chalk); }
+.theme-toggle:focus-visible { outline: 3px solid var(--chalk); outline-offset: 2px; }
+.theme-toggle .icon { width: 1.5rem; height: 1.5rem; vertical-align: middle; }
 
 .navbar .brand {
   margin-right: 1rem;
@@ -386,7 +422,7 @@ a.btn-quiet { text-decoration: none; }
 
 .day-head h2 { margin: 0; font-size: 1.5rem; }
 .day-head p { margin: 0.25rem 0 0; font-size: 0.9rem; }
-.day-head .day-hint { color: var(--yellow); }
+.day-head .day-hint { color: var(--warn); }
 
 .item {
   display: flex;
@@ -586,12 +622,12 @@ input.entry {
 .reminder {
   padding: 0.6rem 1.5rem;
   background: var(--yellow);
-  color: var(--steel-deep);
+  color: var(--ink);
   font-weight: 500;
 }
 
 .reminder a { color: inherit; font-weight: 700; }
-.reminder a:focus-visible { outline-color: var(--steel-deep); }
+.reminder a:focus-visible { outline-color: var(--ink); }
 
 @media (max-width: 40rem) {
   .fig-label { width: 29%; font-size: 0.7rem; }
