@@ -22,6 +22,8 @@
   {% endfor %}
 </nav>
 
+{# Two columns on a wide screen: the measuring form with the figure, and the table of all values next to it. #}
+<div class="body-layout">
 <form class="measure-sheet" method="post" action="/body/measure">
   <div class="tiles">
     {% for t, s in tiles %}
@@ -64,7 +66,6 @@
     <span class="muted">Запишутся только изменённые поля, датой {{ today }}.</span>
   </div>
 </form>
-<script src="{{ url_for('static', path='body.js') }}" defer></script>
 
 <section class="history">
   <h2>Все показатели</h2>
@@ -86,4 +87,6 @@
     </tbody>
   </table>
 </section>
+</div>
+<script src="{{ url_for('static', path='body.js') }}" defer></script>
 {% endblock %}

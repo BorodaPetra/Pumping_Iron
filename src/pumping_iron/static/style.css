@@ -485,6 +485,14 @@ a.btn-quiet { text-decoration: none; }
 .history thead th { color: var(--muted); font-weight: 400; font-size: 0.9rem; }
 .history a { color: var(--chalk); text-decoration-color: var(--plate); }
 
+/* Body page: the form with the figure on the left, the table of all values on the right (wide screens only). */
+@media (min-width: 70rem) {
+  main:has(.body-layout) { max-width: 80rem; }
+  .body-layout { display: grid; grid-template-columns: minmax(0, 40rem) minmax(0, 1fr); gap: 2.5rem; align-items: start; }
+  .body-layout .history { margin-top: 0; }
+  .body-layout .history h2 { margin-top: 0; }
+}
+
 /* what the server changed (or failed to do) during a reply, shown apart from the model's text */
 .notice {
   margin: 0.4rem 0;
