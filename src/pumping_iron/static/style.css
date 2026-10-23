@@ -110,10 +110,27 @@ main p { max-width: 60ch; color: var(--muted); }
 .hero p { margin: 0 0 2rem; }
 
 .barbell {
+  position: relative;
+  isolation: isolate;
   display: flex;
   align-items: center;
   gap: 0.35rem;
   min-height: 24rem;
+}
+
+/* The photo sits square behind the bar between the plates; multiply turns its white into the page colour
+   and the mask fades its edges. */
+.barbell::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 50%;
+  aspect-ratio: 1;
+  translate: -50% 0;
+  z-index: -1;
+  background: url("img/hero-bicep.webp") no-repeat center / cover;
+  mix-blend-mode: multiply;
+  -webkit-mask-image: radial-gradient(closest-side, #000 62%, transparent);
+  mask-image: radial-gradient(closest-side, #000 62%, transparent);
 }
 
 .bar {
