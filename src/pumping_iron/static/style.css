@@ -546,6 +546,14 @@ main.plate-blue { max-width: 80rem; }
 .stat figcaption { margin-bottom: 0.25rem; color: var(--muted); font-size: 0.9rem; }
 .stat-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: 1rem 2rem; }
 .stat-empty { margin: 0; }
+
+/* Statistics: two columns on wide screens (sections flow left to right; `.wide` ones take the full row).
+   The white plate belongs to this page only, so it gets the same wide main as the body pages. */
+main.plate-white { max-width: 80rem; }
+@media (min-width: 70rem) {
+  .stat-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 3rem; align-items: start; }
+  .stat-grid .wide { grid-column: 1 / -1; }
+}
 .stat-empty a { color: var(--chalk); }
 
 .chart { display: block; width: 100%; max-width: 36rem; height: auto; }

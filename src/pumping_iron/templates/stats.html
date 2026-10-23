@@ -27,7 +27,9 @@
   <div class="stat-tile"><span class="stat-num">{{ tiles.streak }}</span><span class="muted">недель подряд с тренировкой</span></div>
 </div>
 
-<section class="stat">
+{# Two columns on a wide screen; `wide` sections span both. Muscle sets and records sit side by side. #}
+<div class="stat-grid">
+<section class="stat wide">
   <h2>Нагрузка по неделям</h2>
   {% if charts.days %}
     <div class="stat-pair">
@@ -53,6 +55,22 @@
   {% endfor %}
 </section>
 
+{% if records %}
+<section class="stat">
+  <h2>Личные рекорды</h2>
+  <table class="stat-table">
+    <thead><tr><th>Упражнение</th><th>Лучший подход</th><th>Дата</th></tr></thead>
+    <tbody>
+      {% for r in records %}
+        <tr><td>{{ r.name }}</td>
+            <td>{% if r.weight_kg %}{{ '%g'|format(r.weight_kg) }} кг × {{ r.reps }}{% else %}{{ r.reps }} повторений{% endif %}</td>
+            <td>{{ r.performed_on[8:10] }}.{{ r.performed_on[5:7] }}.{{ r.performed_on[:4] }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+
 <section class="stat">
   <h2>Прогресс в упражнении</h2>
   {% if progress.selected %}
@@ -76,20 +94,6 @@
   {% else %}
     {{ empty("Нет подходов за этот период.", "/workouts/journal", "Записать подход") }}
   {% endif %}
-
-  {% if records %}
-    <h3>Личные рекорды</h3>
-    <table class="stat-table">
-      <thead><tr><th>Упражнение</th><th>Лучший подход</th><th>Дата</th></tr></thead>
-      <tbody>
-        {% for r in records %}
-          <tr><td>{{ r.name }}</td>
-              <td>{% if r.weight_kg %}{{ '%g'|format(r.weight_kg) }} кг × {{ r.reps }}{% else %}{{ r.reps }} повторений{% endif %}</td>
-              <td>{{ r.performed_on[8:10] }}.{{ r.performed_on[5:7] }}.{{ r.performed_on[:4] }}</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  {% endif %}
 </section>
 
 <section class="stat">
@@ -107,7 +111,7 @@
   {% endif %}
 </section>
 
-<section class="stat">
+<section class="stat wide">
   <h2>Вес и жир</h2>
   {% if body.weight or body.fat %}
     <div class="stat-pair">
@@ -127,4 +131,5 @@
     {{ empty("Замеров веса и жира пока нет.", "/body", "Внести замеры") }}
   {% endif %}
 </section>
+</div>
 {% endblock %}
