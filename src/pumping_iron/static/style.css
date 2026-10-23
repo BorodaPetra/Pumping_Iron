@@ -66,9 +66,10 @@ a:focus-visible {
 .navbar a {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.6rem;
   padding: 0.3rem 0;
   color: var(--muted);
+  font-size: 1.15rem;
   text-decoration: none;
   border-bottom: 2px solid transparent;
 }
@@ -78,7 +79,7 @@ a:focus-visible {
 .navbar a[aria-current="page"] { border-bottom-color: var(--plate); }
 
 /* icon in the section's plate colour in front of each section link */
-.navbar a .icon { color: var(--plate); }
+.navbar a .icon { width: 1.5rem; height: 1.5rem; color: var(--plate); }
 
 .navbar .brand {
   margin-right: 1rem;
