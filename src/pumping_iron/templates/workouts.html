@@ -51,15 +51,4 @@
   </section>
 {% endfor %}
 </div>
-
-<details class="add library">
-  <summary>{{ icon('plus') }} Новое упражнение в справочник</summary>
-  <form method="post" action="/workouts/exercises">
-    <input type="text" name="name" placeholder="Название" maxlength="80" aria-label="Название" required>
-    <select name="muscle_group_id" aria-label="Группа мышц" required>
-      {% for g in groups %}<option value="{{ g.id }}">{{ g.name }}</option>{% endfor %}
-    </select>
-    <button class="btn" type="submit">{{ icon('plus') }} Создать</button>
-  </form>
-</details>
 {% endblock %}

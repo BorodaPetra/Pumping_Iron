@@ -74,10 +74,15 @@ def build_program(db: sqlite3.Connection) -> list[dict]:
 
 @router.get("", response_class=HTMLResponse)
 def program_page(request: Request, db: Db) -> HTMLResponse:
-    """Show the 3-day program with edit forms and the exercise-library form."""
+    """Show the 3-day program with edit forms."""
+    return page(request, "workouts.html", "red", days=build_program(db), options=exercise_options(db))
+
+
+@router.get("/exercises", response_class=HTMLResponse)
+def library_page(request: Request, db: Db) -> HTMLResponse:
+    """Show the exercise library grouped by muscle group, with the form for a new exercise."""
     groups = db.execute("SELECT id, name FROM muscle_groups ORDER BY id").fetchall()
-    return page(request, "workouts.html", "red", days=build_program(db),
-                options=exercise_options(db), groups=groups)
+    return page(request, "exercises.html", "red", groups=groups, options=exercise_options(db))
 
 
 @router.post("/program/add")
@@ -120,7 +125,7 @@ def add_exercise(db: Db, name: Annotated[str, Form(min_length=1, max_length=80)]
                  muscle_group_id: Annotated[int, Form()]) -> RedirectResponse:
     """Add a new exercise to the library."""
     write(db, "INSERT INTO exercises (name, muscle_group_id) VALUES (?, ?)", (name.strip(), muscle_group_id))
-    return RedirectResponse("/workouts", status_code=303)
+    return RedirectResponse("/workouts/exercises", status_code=303)
 
 
 @router.get("/journal", response_class=HTMLResponse)

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% from "_forms.html" import workouts_tabs %}
+{% block title %}Справочник упражнений · Pumping Iron{% endblock %}
+{% block content %}
+<h1 class="sr-only">Справочник упражнений</h1>
+{{ workouts_tabs(current) }}
+
+<form class="lib-add" method="post" action="/workouts/exercises">
+  <input type="text" name="name" placeholder="Новое упражнение" maxlength="80" aria-label="Название" required>
+  <select name="muscle_group_id" aria-label="Группа мышц" required>
+    {% for g in groups %}<option value="{{ g.id }}">{{ g.name }}</option>{% endfor %}
+  </select>
+  <button class="btn" type="submit">{{ icon('plus') }} Создать</button>
+</form>
+
+<div class="lib-groups">
+  {% for group, exercises in options.items() %}
+    <section class="lib-group">
+      <h2>{{ group }} <small>{{ exercises|length }}</small></h2>
+      <ul>
+        {% for e in exercises %}<li>{{ e.name }}</li>{% endfor %}
+      </ul>
+    </section>
+  {% endfor %}
+</div>
+{% endblock %}

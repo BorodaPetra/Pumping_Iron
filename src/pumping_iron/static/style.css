@@ -441,7 +441,16 @@ a.btn-quiet { text-decoration: none; }
 .add summary { cursor: pointer; color: var(--muted); }
 .add summary:hover { color: var(--chalk); }
 .add form { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-top: 0.75rem; }
-.library { margin-top: 2rem; border-top: 1px solid var(--steel-light); padding-top: 1.25rem; }
+
+/* ---------- exercise library ---------- */
+
+.lib-add { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin: 1.25rem 0 2rem; }
+.lib-add input[type="text"] { min-width: 16rem; }
+.lib-groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr)); gap: 1.5rem 2.5rem; }
+.lib-group h2 { margin: 0 0 0.5rem; font-size: 1.1rem; }
+.lib-group h2 small { color: var(--muted); font-weight: 400; }
+.lib-group ul { margin: 0; padding: 0; list-style: none; }
+.lib-group li { padding: 0.2rem 0; border-bottom: 1px solid var(--steel-light); }
 
 /* ---------- journal ---------- */
 
