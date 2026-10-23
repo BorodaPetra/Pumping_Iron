@@ -1,4 +1,4 @@
-// Chat page: sends the conversation to POST /api/chat and renders the streamed reply.
+// Chat page: sends the conversation and the chosen model to POST /api/chat and renders the streamed reply.
 // The reply is NDJSON: one {"type": "text" | "notice" | "error", "value": string} per line.
 
 const log = document.getElementById("chat-log");
@@ -6,6 +6,23 @@ const empty = document.getElementById("chat-empty");
 const form = document.getElementById("chat-form");
 const input = document.getElementById("chat-input");
 const sendButton = document.getElementById("chat-send");
+
+const providerInputs = document.querySelectorAll('input[name="provider"]');
+
+/** The model chosen in the picker: "local" (LM Studio) or "claude" (Anthropic API). */
+function currentProvider() {
+  return document.querySelector('input[name="provider"]:checked').value;
+}
+
+// Remember the choice between visits; storage may be blocked, then the default (local) stays.
+try {
+  const saved = localStorage.getItem("trainer-provider");
+  const input = [...providerInputs].find((i) => i.value === saved && !i.disabled);
+  if (input) input.checked = true;
+} catch (error) { /* storage unavailable */ }
+providerInputs.forEach((input) => input.addEventListener("change", () => {
+  try { localStorage.setItem("trainer-provider", currentProvider()); } catch (error) { /* storage unavailable */ }
+}));
 
 // Conversation history in the {role, content} shape the API expects; the server keeps none.
 // Only the user's messages and the model's own text go in: server notices and errors never do.
@@ -60,7 +77,7 @@ async function send(text) {
     const response = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages: history }),
+      body: JSON.stringify({ messages: history, provider: currentProvider() }),
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
 

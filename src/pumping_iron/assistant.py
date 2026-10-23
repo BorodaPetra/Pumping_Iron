@@ -1,30 +1,45 @@
-"""AI trainer: streaming chat endpoint that proxies to a local LM Studio server.
+"""AI trainer: the /assistant page and a streaming chat endpoint with two interchangeable models.
 
-LM Studio exposes an OpenAI-compatible API. Its address and the model name come
-from the environment so nothing is hard-coded to one machine:
-  LMSTUDIO_URL    base URL, default http://localhost:1234/v1
-  LMSTUDIO_MODEL  model identifier as shown in LM Studio, default "local-model"
+The user picks the model on the page, and each chat request carries the choice:
+  "local"   a local LM Studio server (OpenAI-compatible API, written with httpx);
+  "claude"  the Anthropic API (official SDK), needs a key in the environment.
+Addresses, keys and model names come from the environment so nothing is hard-coded:
+  LMSTUDIO_URL       base URL, default http://localhost:1234/v1
+  LMSTUDIO_MODEL     model identifier as shown in LM Studio, default "local-model"
+  ANTHROPIC_API_KEY  key for the Claude option (ANTHROPIC_AUTH_TOKEN also works)
+  ANTHROPIC_MODEL    Claude model id, default "claude-opus-5-5"
 
-The model can change the user's data through tools (see `trainer_tools`): when it
+Either model can change the user's data through tools (see `trainer_tools`): when it
 answers with tool calls, the server runs them, tells the user what was done, feeds the
 results back to the model and lets it continue.
 """
 
 import json
 import os
+import sqlite3
 from collections.abc import AsyncIterator
 from typing import Literal
 
+import anthropic
 import httpx
-from fastapi import APIRouter
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, Request
+from fastapi.responses import HTMLResponse, StreamingResponse
 from pydantic import BaseModel
 
 from pumping_iron.db import connect
 from pumping_iron.trainer_tools import TOOLS, build_context, run_tool
+from pumping_iron.web import page
 
 LMSTUDIO_URL = os.environ.get("LMSTUDIO_URL", "http://localhost:1234/v1")
 LMSTUDIO_MODEL = os.environ.get("LMSTUDIO_MODEL", "local-model")
+CLAUDE_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-opus-5-5")
+CLAUDE_MAX_TOKENS = 16000
+
+# The tools in the Anthropic format (the same definitions `TOOLS` holds in the OpenAI format).
+CLAUDE_TOOLS = [
+    {"name": t["function"]["name"], "description": t["function"]["description"], "input_schema": t["function"]["parameters"]}
+    for t in TOOLS
+]
 
 # Safety stop for the model -> tools -> model loop.
 MAX_TOOL_ROUNDS = 5
@@ -44,7 +59,12 @@ SYSTEM_PROMPT = (
     "Ниже актуальные данные пользователя."
 )
 
-router = APIRouter(prefix="/api")
+router = APIRouter()
+
+
+def claude_ready() -> bool:
+    """True when the environment holds Anthropic credentials, so the Claude option can be used."""
+    return bool(os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN"))
 
 
 class Message(BaseModel):
@@ -55,9 +75,10 @@ class Message(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    """Whole conversation so far; the server keeps no chat state."""
+    """Whole conversation so far plus the chosen model; the server keeps no chat state."""
 
     messages: list[Message]
+    provider: Literal["local", "claude"] = "local"
 
 
 def event(kind: str, value: str) -> str:
@@ -87,21 +108,19 @@ def parse_sse_line(line: str) -> dict | None:
     return payload if isinstance(payload, dict) else None
 
 
-async def stream_reply(messages: list[Message]) -> AsyncIterator[str]:
-    """Yield the trainer's reply as NDJSON events, running tool calls along the way.
+async def _stream_local(db: sqlite3.Connection, system: str, messages: list[Message]) -> AsyncIterator[str]:
+    """Yield the reply of the local LM Studio model as NDJSON events, running tool calls along the way.
 
-    Takes the conversation history. Each round calls LM Studio with `stream=true` and
-    forwards the text of every SSE chunk; tool-call fragments are collected per call
-    index. If the round ended with tool calls, they are executed against the database,
-    a "notice" event per successful change is yielded, and the results are sent back to
-    the model for the next round. The last allowed round is sent without tools, so the
-    model has to finish with a text answer. An error reported by LM Studio, an
-    unreachable server or an HTTP failure becomes a single "error" event.
+    Takes the connection, the full system prompt and the conversation history. Each round
+    calls LM Studio with `stream=true` and forwards the text of every SSE chunk; tool-call
+    fragments are collected per call index. If the round ended with tool calls, they are
+    executed against the database, a "notice" event per successful change is yielded, and
+    the results are sent back to the model for the next round. The last allowed round is
+    sent without tools, so the model has to finish with a text answer. An error reported
+    by LM Studio, an unreachable server or an HTTP failure becomes a single "error" event.
     """
-    db = connect()
     try:
-        # The context is built once per request: it reflects the data at the start of the chat turn.
-        payload_messages = [{"role": "system", "content": f"{SYSTEM_PROMPT}\n\n{build_context(db)}"}]
+        payload_messages = [{"role": "system", "content": system}]
         payload_messages += [m.model_dump() for m in messages]
         # PERF: one shared AsyncClient (created at app startup) reuses the TCP connection
         # to LM Studio instead of opening a new one per message.
@@ -163,11 +182,85 @@ async def stream_reply(messages: list[Message]) -> AsyncIterator[str]:
         yield event("error", f"LM Studio недоступен по адресу {LMSTUDIO_URL}. Запусти локальный сервер в LM Studio.")
     except httpx.HTTPError as exc:
         yield event("error", f"Ошибка LM Studio: {exc}")
+
+
+async def _stream_claude(db: sqlite3.Connection, system: str, messages: list[Message]) -> AsyncIterator[str]:
+    """Yield the reply of Claude (Anthropic API) as NDJSON events, running tool calls along the way.
+
+    Same contract as `_stream_local`. Each round streams one Messages request and forwards the
+    text deltas; when the finished message asks for tools they are executed, a "notice" event
+    is yielded per successful change, and the whole assistant message (thinking blocks
+    included, the API needs them back) plus the tool results go into the next round. The
+    last allowed round is sent without tools. Missing credentials, a refusal, rate limits and
+    network or API failures become a single "error" event.
+    """
+    if not claude_ready():
+        yield event("error", "Для Claude нужен ключ: задай переменную окружения ANTHROPIC_API_KEY и перезапусти сервер.")
+        return
+    # PERF: one shared AsyncAnthropic created at app startup would reuse the connection pool across messages.
+    client = anthropic.AsyncAnthropic()
+    api_messages = [m.model_dump() for m in messages]
+    try:
+        for round_number in range(MAX_TOOL_ROUNDS):
+            tools = CLAUDE_TOOLS if round_number < MAX_TOOL_ROUNDS - 1 else anthropic.omit
+            async with client.messages.stream(
+                model=CLAUDE_MODEL, max_tokens=CLAUDE_MAX_TOKENS, system=system, tools=tools, messages=api_messages
+            ) as stream:
+                async for text in stream.text_stream:
+                    yield event("text", text)
+                final = await stream.get_final_message()
+            if final.stop_reason == "refusal":
+                yield event("error", "Claude отказался отвечать на этот запрос.")
+                return
+            calls = [block for block in final.content if block.type == "tool_use"]
+            if not calls:
+                return
+
+            api_messages.append({"role": "assistant", "content": final.content})
+            results = []
+            for call in calls:
+                # PERF: sqlite3 calls block the event loop; asyncio.to_thread(run_tool, ...) would keep it free.
+                result, notice = run_tool(db, call.name, json.dumps(call.input))
+                if notice:
+                    yield event("notice", notice)
+                results.append({"type": "tool_result", "tool_use_id": call.id, "content": result})
+            api_messages.append({"role": "user", "content": results})
+        yield event("error", "Достигнут лимит шагов, Claude так и не дал итогового ответа.")
+    except anthropic.AuthenticationError:
+        yield event("error", "Anthropic отклонил ключ: проверь ANTHROPIC_API_KEY.")
+    except anthropic.RateLimitError:
+        yield event("error", "Anthropic: превышен лимит запросов, попробуй через минуту.")
+    except anthropic.APIConnectionError:
+        yield event("error", "Не удалось связаться с Anthropic API: проверь интернет.")
+    except anthropic.APIStatusError as exc:
+        yield event("error", f"Ошибка Anthropic API ({exc.status_code}): {exc.message}")
+
+
+async def stream_reply(messages: list[Message], provider: str) -> AsyncIterator[str]:
+    """Yield the trainer's reply as NDJSON events from the chosen model ("local" or "claude").
+
+    Builds the system prompt with the live data once per request (it reflects the data at the
+    start of the chat turn) and closes the database connection when the stream ends.
+    """
+    db = connect()
+    try:
+        system = f"{SYSTEM_PROMPT}\n\n{build_context(db)}"
+        backend = _stream_claude if provider == "claude" else _stream_local
+        async for item in backend(db, system, messages):
+            yield item
     finally:
         db.close()
 
 
-@router.post("/chat")
+@router.get("/assistant", response_class=HTMLResponse)
+async def assistant_page(request: Request) -> HTMLResponse:
+    """The chat page; tells the template whether the Claude option can be used and which model it is."""
+    return page(request, "assistant.html", "yellow", claude_ready=claude_ready(), claude_model=CLAUDE_MODEL)
+
+
+@router.post("/api/chat")
 async def chat(request: ChatRequest) -> StreamingResponse:
     """Stream the trainer's answer as NDJSON events (one JSON object per line, see `event`)."""
-    return StreamingResponse(stream_reply(request.messages), media_type="application/x-ndjson; charset=utf-8")
+    return StreamingResponse(
+        stream_reply(request.messages, request.provider), media_type="application/x-ndjson; charset=utf-8"
+    )

@@ -3,6 +3,16 @@
 {% block content %}
 <h1>АИ тренер</h1>
 <div class="chat">
+  {# The choice is remembered by chat.js; the server only tells whether the Claude key exists. #}
+  <fieldset class="model-pick" id="model-pick">
+    <legend>Модель</legend>
+    <label><input type="radio" name="provider" value="local" checked> Локальная (LM Studio)</label>
+    <label{% if not claude_ready %} title="Задай ANTHROPIC_API_KEY и перезапусти сервер"{% endif %}>
+      <input type="radio" name="provider" value="claude"{% if not claude_ready %} disabled{% endif %}>
+      Claude API ({{ claude_model }})
+    </label>
+    {% if not claude_ready %}<p class="model-hint">Для Claude нужен ключ: переменная окружения ANTHROPIC_API_KEY.</p>{% endif %}
+  </fieldset>
   <div class="chat-log" id="chat-log" aria-live="polite">
     <p class="chat-empty" id="chat-empty">Спроси про программу, технику упражнения или восстановление.</p>
   </div>

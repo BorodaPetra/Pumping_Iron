@@ -16,7 +16,7 @@ BASE_DIR = Path(__file__).parent
 PAGES = [
     ("/workouts", None, "Тренировки", "red"),
     ("/body", None, "Показатели", "blue"),
-    ("/assistant", "assistant.html", "АИ тренер", "yellow"),
+    ("/assistant", None, "АИ тренер", "yellow"),
     ("/meditation", "meditation.html", "Медитации", "green"),
     ("/stats", "stats.html", "Статистика", "white"),
     ("/nutrition", None, "Питание", "orange"),
