@@ -428,6 +428,8 @@ main.plate-red { max-width: 80rem; }
 .totals { margin: 0 0 1.5rem; font-size: 1.1rem; color: var(--chalk); }
 .meal-name { margin: 0.9rem 0 0; font-size: 1.05rem; }
 .meal-name:first-child { margin-top: 0; }
+/* products sit indented under their meal, like a folder tree */
+.meal-name ~ .item { padding-left: 1.5rem; }
 .day-head p { line-height: 1.4; }
 
 .muted { color: var(--muted); font-size: 0.9rem; }
