@@ -2,5 +2,14 @@
 {% block title %}АИ тренер · Pumping Iron{% endblock %}
 {% block content %}
 <h1>АИ тренер</h1>
-<p>Чат с локальной моделью (LM Studio): скоро.</p>
+<div class="chat">
+  <div class="chat-log" id="chat-log" aria-live="polite">
+    <p class="chat-empty" id="chat-empty">Спроси про программу, технику упражнения или восстановление.</p>
+  </div>
+  <form class="chat-form" id="chat-form">
+    <textarea id="chat-input" rows="2" placeholder="Например: чем заменить жим лёжа при боли в плече?" required></textarea>
+    <button type="submit" id="chat-send">Отправить</button>
+  </form>
+</div>
+<script src="{{ url_for('static', path='chat.js') }}"></script>
 {% endblock %}

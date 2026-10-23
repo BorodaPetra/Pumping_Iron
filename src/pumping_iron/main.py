@@ -7,6 +7,8 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from pumping_iron.assistant import router as assistant_router
+
 BASE_DIR = Path(__file__).parent
 
 # (url path, template name, navbar title, plate colour); the order is the navbar
@@ -20,6 +22,7 @@ PAGES = [
 ]
 
 app = FastAPI(title="Pumping Iron")
+app.include_router(assistant_router)
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
 templates.env.globals["nav"] = [
