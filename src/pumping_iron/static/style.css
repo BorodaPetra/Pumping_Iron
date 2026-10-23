@@ -386,7 +386,12 @@ main.plate-red { max-width: 80rem; }
 
 /* ---------- journal ---------- */
 
+/* the fields stretch to fill the row: the exercise gets the most room, the button keeps its size */
 .log-form { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 2rem; }
+.log-form input[type="date"] { flex: 1 1 10rem; }
+.log-form select { flex: 3 1 14rem; min-width: 0; }
+.log-form input[type="number"] { flex: 1 1 7rem; min-width: 0; }
+.log-form .btn { flex: none; }
 .log-day h2 { margin: 1.5rem 0 0.25rem; font-size: 1.25rem; }
 .log-day ul { margin: 0; padding: 0; list-style: none; }
 
