@@ -42,7 +42,7 @@
       {{ block(quote.ru, "Русский", quote.author ~ ", " ~ quote.source, "ru") }}
     {% else %}
       {{ block(quote.en, "English", quote.author ~ ", " ~ quote.source, "en") }}
-      {{ block(quote.ru, "Русский перевод", "перевод Claude", "ru") }}
+      {{ block(quote.ru, "Русский перевод", "перевод " ~ quote.ru_by, "ru") }}
     {% endif %}
   </div>
   {# A plain link: the server picks the random quote for the next click, no script needed. #}

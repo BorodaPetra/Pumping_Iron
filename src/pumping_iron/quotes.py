@@ -1,6 +1,6 @@
 """Quote of the day for the home page.
 
-`quotes.txt` holds 365 quotes, one per line: kind|author|source|russian|english.
+`quotes.txt` holds 365 quotes, one per line: kind|author|source|russian|english|russian_by.
 Kind `s` is a thought from the Stoics and other sages, `d` is a push from the gym world. Every
 quote has an English and a Russian text; other languages are not shown. At load time each kind is
 shuffled with a fixed seed and the kinds are interleaved evenly, so the day of the year picks the
@@ -22,6 +22,7 @@ class Quote(NamedTuple):
     source: str
     ru: str
     en: str
+    ru_by: str  # translator of the Russian text; "Claude" when no published translation was found
 
 
 def _load() -> list[Quote]:
