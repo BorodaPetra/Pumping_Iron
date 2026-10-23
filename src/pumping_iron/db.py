@@ -36,7 +36,8 @@ CREATE TABLE IF NOT EXISTS exercises (
     id              INTEGER PRIMARY KEY,
     name            TEXT NOT NULL UNIQUE,
     muscle_group_id INTEGER NOT NULL REFERENCES muscle_groups(id),
-    description     TEXT NOT NULL DEFAULT ''   -- a few words shown under the name in the library
+    description     TEXT NOT NULL DEFAULT '',  -- a few words shown under the name in the library
+    is_basic        INTEGER NOT NULL DEFAULT 0 CHECK (is_basic IN (0, 1))  -- 1 = basic (compound) exercise
 );
 CREATE TABLE IF NOT EXISTS program_items (
     id          INTEGER PRIMARY KEY,
@@ -124,7 +125,7 @@ SEED_ANTAGONISTS = [
 # ones on every start and fills empty descriptions, names and descriptions already set are kept.
 SEED_EXERCISES = [
     # Грудь
-    ("Жим штанги лёжа", "Грудь", "базовое, вся грудь"),
+    ("Жим штанги лёжа", "Грудь", "вся грудь"),
     ("Жим гантелей на наклонной скамье", "Грудь", "верх груди"),
     ("Сведение рук в кроссовере", "Грудь", "изоляция груди"),
     ("Жим гантелей лёжа", "Грудь", "вся грудь, большая амплитуда"),
@@ -183,7 +184,7 @@ SEED_EXERCISES = [
     ("Рычажная тяга в тренажёре", "Спина", "толщина спины"),
     ("Тяга штанги обратным хватом", "Спина", "низ спины и бицепс"),
     # Бицепс
-    ("Подъём штанги на бицепс", "Бицепс", "базовое, масса бицепса"),
+    ("Подъём штанги на бицепс", "Бицепс", "масса бицепса"),
     ("Молотки", "Бицепс", "брахиалис и предплечья"),
     ("Подъём гантелей на бицепс стоя", "Бицепс", "бицепс с супинацией"),
     ("Подъём гантелей на бицепс сидя на наклонной скамье", "Бицепс", "растяжка бицепса"),
@@ -196,7 +197,7 @@ SEED_EXERCISES = [
     ("Подъём штанги обратным хватом", "Бицепс", "брахиалис и предплечья"),
     ("Сгибание рук в тренажёре", "Бицепс", "изоляция бицепса"),
     # Квадрицепс
-    ("Приседания со штангой", "Квадрицепс", "базовое, ноги и ягодицы"),
+    ("Приседания со штангой", "Квадрицепс", "ноги и ягодицы"),
     ("Жим ногами", "Квадрицепс", "квадрицепс без нагрузки на спину"),
     ("Фронтальные приседания", "Квадрицепс", "квадрицепс, корпус прямо"),
     ("Разгибание ног в тренажёре", "Квадрицепс", "изоляция квадрицепса"),
@@ -256,6 +257,21 @@ SEED_EXERCISES = [
     ("Наклоны со штангой на плечах", "Низ спины", "низ спины и бицепс бедра"),
     ("Разгибание спины в тренажёре", "Низ спины", "разгибатели спины"),
 ]
+
+# Basic (compound) exercises, marked with a star in the library.
+BASIC_EXERCISES = {
+    "Жим штанги лёжа", "Жим гантелей лёжа", "Жим штанги на наклонной скамье",
+    "Жим гантелей на наклонной скамье", "Жим штанги на скамье головой вниз",
+    "Жим гантелей на скамье головой вниз", "Отжимания на брусьях (грудь)", "Отжимания от пола",
+    "Жим штанги стоя", "Жим гантелей сидя", "Жим Арнольда", "Жим штанги от груди сидя",
+    "Жим штанги узким хватом", "Отжимания на брусьях (трицепс)", "Жим гантелей узким хватом",
+    "Отжимания узким хватом", "Тяга штанги в наклоне", "Подтягивания", "Подтягивания обратным хватом",
+    "Тяга Т-грифа", "Тяга Пендли", "Становая тяга", "Тяга штанги обратным хватом",
+    "Тяга гантели одной рукой в наклоне", "Приседания со штангой", "Фронтальные приседания", "Жим ногами",
+    "Выпады с гантелями", "Выпады со штангой", "Болгарские сплит-приседания", "Гоблет-приседания",
+    "Румынская тяга", "Становая тяга на прямых ногах", "Румынская тяга с гантелями",
+    "Ягодичный мостик со штангой", "Приседания сумо", "Становая тяга сумо", "Наклоны со штангой на плечах",
+}
 
 
 # (key, name, kind, unit, min, max, better). Girths are in cm, weight in kg, body fat in %.
@@ -320,12 +336,16 @@ def seed_exercises(conn: sqlite3.Connection) -> None:
         "UPDATE exercises SET description = ? WHERE name = ? AND description = ''",
         [(description, name) for name, _, description in SEED_EXERCISES],
     )
+    conn.executemany("UPDATE exercises SET is_basic = 1 WHERE name = ?", [(name,) for name in BASIC_EXERCISES])
 
 
-def migrate_exercise_description(conn: sqlite3.Connection) -> None:
-    """Add the `description` column to an exercise table created before it existed."""
-    if not any(col["name"] == "description" for col in conn.execute("PRAGMA table_info(exercises)")):
+def migrate_exercise_columns(conn: sqlite3.Connection) -> None:
+    """Add the `description` and `is_basic` columns to an exercise table created before they existed."""
+    present = {col["name"] for col in conn.execute("PRAGMA table_info(exercises)")}
+    if "description" not in present:
         conn.execute("ALTER TABLE exercises ADD COLUMN description TEXT NOT NULL DEFAULT ''")
+    if "is_basic" not in present:
+        conn.execute("ALTER TABLE exercises ADD COLUMN is_basic INTEGER NOT NULL DEFAULT 0 CHECK (is_basic IN (0, 1))")
 
 
 def migrate_program_days(conn: sqlite3.Connection) -> None:
@@ -377,7 +397,7 @@ def init_db() -> None:
             migrate_program_days(conn)
             conn.executescript(SCHEMA)
             migrate_diet_weekday(conn)
-            migrate_exercise_description(conn)
+            migrate_exercise_columns(conn)
             if not conn.execute("SELECT 1 FROM muscle_groups LIMIT 1").fetchone():
                 seed_training(conn)
             seed_exercises(conn)

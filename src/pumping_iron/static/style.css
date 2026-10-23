@@ -369,6 +369,9 @@ a.btn-quiet { text-decoration: none; }
 /* up to three columns of groups, filled top to bottom so short groups do not leave gaps; same page width as the other tabs */
 .lib-groups { columns: 3 16rem; column-gap: 2rem; }
 .lib-group { break-inside: avoid; margin-bottom: 1.5rem; }
+.lib-line { display: flex; justify-content: space-between; gap: 0.5rem; }
+.lib-star { color: var(--yellow); }
+.lib-legend { margin: -1rem 0 0; font-size: 0.9rem; }
 .lib-group li small { display: block; color: #7b8187; font-size: 0.85rem; line-height: 1.3; }
 .lib-block { margin-top: 2.25rem; }
 .lib-block > h2 { margin: 0 0 1rem; padding-bottom: 0.4rem; border-bottom: 2px solid var(--plate); font-size: 1.5rem; }

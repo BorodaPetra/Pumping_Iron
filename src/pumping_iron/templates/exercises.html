@@ -12,6 +12,7 @@
   </select>
   <button class="btn" type="submit">{{ icon('plus') }} Создать</button>
 </form>
+<p class="lib-legend"><span class="lib-star" aria-hidden="true">★</span> базовое упражнение</p>
 
 {% for title, block_groups in blocks %}
 <section class="lib-block">
@@ -21,7 +22,7 @@
       <section class="lib-group">
         <h3>{{ group }} <small>{{ exercises|length }}</small></h3>
         <ul>
-          {% for e in exercises %}<li>{{ e.name }}{% if e.description %}<small>({{ e.description }})</small>{% endif %}</li>{% endfor %}
+          {% for e in exercises %}<li><span class="lib-line"><span>{{ e.name }}</span>{% if e.is_basic %}<span class="lib-star" title="Базовое упражнение" aria-label="Базовое упражнение">★</span>{% endif %}</span>{% if e.description %}<small>({{ e.description }})</small>{% endif %}</li>{% endfor %}
         </ul>
       </section>
     {% endfor %}

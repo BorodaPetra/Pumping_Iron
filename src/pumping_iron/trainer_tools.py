@@ -14,7 +14,9 @@ from datetime import date
 from pumping_iron.body import load_summaries
 from pumping_iron.nutrition import MEALS, build_diet_week
 from pumping_iron.stats import personal_records
-from pumping_iron.workouts import PROGRAM_DAYS, WEEKDAYS, WEEKDAYS_SHORT, build_program, exercise_options
+from pumping_iron.workouts import (
+    LIBRARY_BLOCKS, PROGRAM_DAYS, WEEKDAYS, WEEKDAYS_SHORT, build_program, exercise_options,
+)
 
 # How much history goes into the prompt: the last training days, and the period of the body changes.
 JOURNAL_DAYS = 5
@@ -127,12 +129,24 @@ def body_context(db: sqlite3.Connection) -> str:
     return "Замеры тела:\n" + "\n".join(lines) if lines else "Замеров тела пока нет."
 
 
+def library_context(db: sqlite3.Connection) -> str:
+    """Describe the exercise library for the model: body block, muscle group, exercises with a short note each."""
+    options = exercise_options(db)
+    lines = []
+    for title, groups in LIBRARY_BLOCKS:
+        lines.append(f"{title}:")
+        for group in groups:
+            items = "; ".join(
+                e["name"] + (" ★" if e["is_basic"] else "") + (f" ({e['description']})" if e["description"] else "")
+                for e in options.get(group, [])
+            )
+            lines.append(f"- {group}: {items}")
+    return "\n".join(lines)
+
+
 def build_context(db: sqlite3.Connection) -> str:
     """Describe the library, program, meal plan, intake, journal and body measurements as text for the system prompt."""
-    library = "\n".join(
-        f"- {group}: {', '.join(e['name'] for e in exercises)}"
-        for group, exercises in exercise_options(db).items()
-    )
+    library = library_context(db)
     program = "\n".join(
         f"- {day['name']}: "
         + ("; ".join(f"{i['exercise']} {i['sets']}×{i['reps']}, {i['weight_kg']:g} кг" for i in day["items"])
@@ -152,7 +166,7 @@ def build_context(db: sqlite3.Connection) -> str:
     today = date.today()
     return (
         f"Сегодня {WEEKDAYS_SHORT[today.weekday()]} {today:%d.%m.%Y}.\n\n"
-        f"Справочник упражнений по группам мышц:\n{library}\n\nТекущая программа пользователя:\n{program}\n\n"
+        f"Справочник упражнений по частям тела и группам мышц (в скобках пояснение, ★ базовое упражнение):\n{library}\n\nТекущая программа пользователя:\n{program}\n\n"
         f"{journal_context(db)}\n\n{body_context(db)}\n\n"
         f"Текущий рацион по дням недели:\n{diet}\n\n"
         f"Сегодня по дневнику съедено {eaten['kcal']} ккал."
