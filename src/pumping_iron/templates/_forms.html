@@ -1,0 +1,23 @@
+{# Shared form pieces for the workouts pages. #}
+
+{# <select name="exercise_id"> with exercises grouped by muscle group; `selected` is an exercise id or none. #}
+{% macro exercise_select(options, selected=none) %}
+<select name="exercise_id" aria-label="Упражнение" required>
+  <option value="" disabled{% if selected is none %} selected{% endif %}>Упражнение</option>
+  {% for group, exercises in options.items() %}
+    <optgroup label="{{ group }}">
+      {% for e in exercises %}
+        <option value="{{ e.id }}"{% if e.id == selected %} selected{% endif %}>{{ e.name }}</option>
+      {% endfor %}
+    </optgroup>
+  {% endfor %}
+</select>
+{% endmacro %}
+
+{# Sub-navigation between the program and the journal. #}
+{% macro workouts_tabs(current) %}
+<div class="tabs">
+  <a href="/workouts"{% if current == '/workouts' %} aria-current="page"{% endif %}>Программа</a>
+  <a href="/workouts/journal"{% if current == '/workouts/journal' %} aria-current="page"{% endif %}>Журнал</a>
+</div>
+{% endmacro %}

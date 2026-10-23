@@ -1,46 +1,40 @@
-"""FastAPI application: home page and one page per main block."""
+"""FastAPI application: home page, section pages and routers."""
 
-from pathlib import Path
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 
 from pumping_iron.assistant import router as assistant_router
+from pumping_iron.db import init_db
+from pumping_iron.web import BASE_DIR, PAGES, page
+from pumping_iron.workouts import router as workouts_router
 
-BASE_DIR = Path(__file__).parent
 
-# (url path, template name, navbar title, plate colour); the order is the navbar
-# and barbell order. The colour name maps to a `.plate-<name>` class in style.css.
-PAGES = [
-    ("/workouts", "workouts.html", "Тренировки", "red"),
-    ("/body", "body.html", "Показатели", "blue"),
-    ("/assistant", "assistant.html", "АИ тренер", "yellow"),
-    ("/meditation", "meditation.html", "Медитации", "green"),
-    ("/stats", "stats.html", "Статистика", "white"),
-    ("/nutrition", "nutrition.html", "Питание", "orange"),
-]
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    """Create and seed the SQLite database before the first request."""
+    init_db()
+    yield
 
-app = FastAPI(title="Pumping Iron")
+
+app = FastAPI(title="Pumping Iron", lifespan=lifespan)
 app.include_router(assistant_router)
+app.include_router(workouts_router)
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
-templates = Jinja2Templates(directory=BASE_DIR / "templates")
-templates.env.globals["nav"] = [
-    {"path": path, "title": title, "plate": plate} for path, _, title, plate in PAGES
-]
 
 
 def render(template: str, plate: str | None = None):
-    """Build a GET handler that renders `template` with the shared navbar context."""
+    """Build a GET handler that renders the static `template` with the shared navbar context."""
 
     async def handler(request: Request) -> HTMLResponse:
-        context = {"current": request.url.path, "plate": plate}
-        return templates.TemplateResponse(request, template, context)
+        return page(request, template, plate)
 
     return handler
 
 
 app.add_api_route("/", render("index.html"), response_class=HTMLResponse)
 for path, template, _, plate in PAGES:
-    app.add_api_route(path, render(template, plate), response_class=HTMLResponse)
+    if template:  # pages with a template None are served by a router
+        app.add_api_route(path, render(template, plate), response_class=HTMLResponse)

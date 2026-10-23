@@ -253,3 +253,95 @@ main p { max-width: 60ch; color: var(--muted); }
 
 .chat-form button:disabled { opacity: 0.5; cursor: wait; }
 .chat-form button:focus-visible { outline: 3px solid var(--chalk); outline-offset: 2px; }
+
+/* ---------- forms and controls ---------- */
+
+input, select {
+  padding: 0.45rem 0.6rem;
+  background: var(--steel-deep);
+  color: var(--chalk);
+  border: 1px solid var(--steel-light);
+  border-radius: 0.4rem;
+  font: inherit;
+}
+
+input[type="number"] { width: 4.5rem; }
+input:focus-visible, select:focus-visible { outline: 3px solid var(--plate, var(--chalk)); outline-offset: 1px; }
+
+.btn, .btn-quiet {
+  padding: 0.45rem 0.9rem;
+  border: 0;
+  border-radius: 0.4rem;
+  font: 600 0.95rem var(--font-display);
+  cursor: pointer;
+}
+
+.btn { background: var(--plate); color: var(--on); }
+.btn-quiet { background: transparent; color: var(--muted); }
+.btn-quiet:hover { color: var(--chalk); }
+.btn:focus-visible, .btn-quiet:focus-visible { outline: 3px solid var(--chalk); outline-offset: 2px; }
+
+.tabs { display: flex; gap: 1.5rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--steel-light); }
+
+.tabs a {
+  padding: 0.4rem 0;
+  color: var(--muted);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+}
+
+.tabs a[aria-current="page"] { color: var(--chalk); border-bottom-color: var(--plate); }
+
+/* ---------- weekly program: a gym whiteboard, day label left, exercises right ---------- */
+
+.day {
+  display: grid;
+  grid-template-columns: 11rem 1fr;
+  gap: 1.5rem;
+  padding: 1.25rem 0;
+  border-top: 1px solid var(--steel-light);
+}
+
+.day-head h2 { margin: 0; font-size: 1.5rem; }
+.day-head p { margin: 0.25rem 0 0; font-size: 0.9rem; }
+.day-head .day-hint { color: var(--yellow); }
+
+.item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  padding: 0.5rem 0;
+}
+
+.item-name { flex: 1 1 14rem; display: flex; flex-direction: column; }
+.item-name small { color: var(--muted); }
+.item-load { display: flex; align-items: center; gap: 0.4rem; white-space: nowrap; }
+.item-actions { display: flex; gap: 0.25rem; }
+
+.rest { margin: 0.5rem 0; }
+
+.add { margin-top: 0.5rem; }
+.add summary { cursor: pointer; color: var(--muted); }
+.add summary:hover { color: var(--chalk); }
+.add form { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-top: 0.75rem; }
+.library { margin-top: 2rem; border-top: 1px solid var(--steel-light); padding-top: 1.25rem; }
+
+/* ---------- journal ---------- */
+
+.log-form { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 2rem; }
+.log-day h2 { margin: 1.5rem 0 0.25rem; font-size: 1.25rem; }
+.log-day ul { margin: 0; padding: 0; list-style: none; }
+
+.log-day li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--steel-light);
+}
+
+@media (max-width: 40rem) {
+  .day { grid-template-columns: 1fr; gap: 0.5rem; }
+}

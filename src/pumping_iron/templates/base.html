@@ -13,7 +13,7 @@
   <nav class="navbar" aria-label="Разделы">
     <a class="brand" href="/">Pumping Iron</a>
     {% for item in nav %}
-      <a href="{{ item.path }}" class="plate-{{ item.plate }}"{% if current == item.path %} aria-current="page"{% endif %}>{{ item.title }}</a>
+      <a href="{{ item.path }}" class="plate-{{ item.plate }}"{% if current == item.path or current.startswith(item.path ~ '/') %} aria-current="page"{% endif %}>{{ item.title }}</a>
     {% endfor %}
   </nav>
   <main{% if plate %} class="plate-{{ plate }}"{% endif %}>{% block content %}{% endblock %}</main>

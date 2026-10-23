@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% from "_forms.html" import exercise_select, workouts_tabs %}
+{% block title %}Журнал · Pumping Iron{% endblock %}
+{% block content %}
+<h1>Журнал</h1>
+{{ workouts_tabs(current) }}
+
+<form class="log-form" method="post" action="/workouts/log">
+  <input type="date" name="performed_on" value="{{ prefill.performed_on }}" aria-label="Дата" required>
+  {{ exercise_select(options, prefill.exercise_id) }}
+  <input type="number" name="reps" value="{{ prefill.reps or '' }}" placeholder="Повторы" min="1" max="100" aria-label="Повторения" required>
+  <input type="number" name="weight_kg" value="{{ '%g'|format(prefill.weight_kg) if prefill.weight_kg is not none else '' }}" placeholder="Вес, кг" min="0" max="1000" step="0.5" aria-label="Вес, кг" required>
+  <button class="btn" type="submit">Записать подход</button>
+</form>
+
+{% for day in days %}
+  <section class="log-day">
+    <h2>{{ day.label }}</h2>
+    <ul>
+      {% for row in day.rows %}
+        <li>
+          <span class="item-name">{{ row.exercise }}<small>{{ row.group_name }}</small></span>
+          <span>{{ row.reps }} × {{ '%g'|format(row.weight_kg) }} кг</span>
+          <form method="post" action="/workouts/log/{{ row.id }}/delete">
+            <button class="btn-quiet" type="submit">Удалить</button>
+          </form>
+        </li>
+      {% endfor %}
+    </ul>
+  </section>
+{% else %}
+  <p>Журнал пуст. Запиши первый подход выше.</p>
+{% endfor %}
+{% endblock %}
