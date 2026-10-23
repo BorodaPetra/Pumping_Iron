@@ -364,7 +364,7 @@ a.btn-quiet { text-decoration: none; }
 
 /* ---------- exercise library ---------- */
 
-.lib-add { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin: 1.25rem 0 2rem; }
+.lib-add { display: flex; flex-wrap: wrap; align-items: stretch; gap: 0.5rem; margin: 1.25rem 0 2rem; }
 .lib-add input[type="text"] { min-width: 16rem; }
 /* up to three columns of groups, filled top to bottom so short groups do not leave gaps; same page width as the other tabs */
 .lib-groups { columns: 3 16rem; column-gap: 2rem; }
