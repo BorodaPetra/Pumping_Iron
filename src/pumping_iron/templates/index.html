@@ -8,7 +8,7 @@
     <div class="sleeve"></div>
     <div class="side side-left">
       {% for item in nav[:3] %}
-        <a class="plate plate-{{ item.plate }}" href="{{ item.path }}" style="--i: {{ loop.index0 }}">{{ item.title }}</a>
+        <a class="plate plate-white" href="{{ item.path }}" style="--i: {{ loop.index0 }}">{{ item.title }}</a>
       {% endfor %}
     </div>
     <div class="collar"></div>
@@ -16,7 +16,7 @@
     <div class="collar"></div>
     <div class="side side-right">
       {% for item in nav[3:6] %}
-        <a class="plate plate-{{ item.plate }}" href="{{ item.path }}" style="--i: {{ loop.index0 }}">{{ item.title }}</a>
+        <a class="plate plate-white" href="{{ item.path }}" style="--i: {{ loop.index0 }}">{{ item.title }}</a>
       {% endfor %}
     </div>
     <div class="sleeve"></div>

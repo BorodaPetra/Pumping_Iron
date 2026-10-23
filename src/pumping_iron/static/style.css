@@ -1,48 +1,33 @@
-/* Pumping Iron: steel-grey gym floor, chalk text, competition plate colours. */
+/* Pumping Iron: light gym floor, dark text, competition plate colours. */
 
 :root {
-  --steel: #22262b;
-  --steel-deep: #1a1d21;
-  --steel-light: #3a4048;
-  --chalk: #ece9e2;
-  --muted: #a1a7ad;
-
-  --red: #c8312b;
-  --blue: #2b5fa8;
-  --yellow: #e3b92c;
-  --green: #26794a;
-  --white: #ece9e2;
-  --orange: #d9722b;
-  --good: #6fcf97;  /* readable on the dark background, unlike the plate green */
-  --bad: #f08a80;
-  --warn: var(--yellow);
-
-  /* the same in both themes: text on a bright / on a dark plate */
-  --ink: #1a1d21;
-  --paper: #ece9e2;
-
-  --font-display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
-  --font-body: "IBM Plex Sans", system-ui, sans-serif;
-  color-scheme: dark;
-}
-
-/* Light theme: theme.js sets data-theme on <html> (saved choice, else the system setting). */
-:root[data-theme="light"] {
   --steel: #f4f2ed;
   --steel-deep: #e8e5de;
   --steel-light: #cdc9c0;
   --chalk: #1f2328;
   --muted: #5b6168;
+
+  --red: #c8312b;
+  --blue: #2b5fa8;
   --yellow: #d4a512;
+  --green: #26794a;
   --white: #3a4048;
+  --orange: #d9722b;
   --good: #1e7d48;
   --bad: #b3392f;
   --warn: #8a6500;
+
+  /* text on a bright / on a dark plate */
+  --ink: #1a1d21;
+  --paper: #ece9e2;
+
+  --font-display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, sans-serif;
   color-scheme: light;
 }
 
 /* A section picks its plate colour by class; --on is the readable text colour on it.
-   The white plate flips with the theme, so its text colour is the background colour of the navbar. */
+   The "white" plate is the dark steel one, so its text colour is the background colour of the navbar. */
 .plate-red    { --plate: var(--red);    --on: var(--paper); }
 .plate-blue   { --plate: var(--blue);   --on: var(--paper); }
 .plate-yellow { --plate: var(--yellow); --on: var(--ink); }
@@ -99,27 +84,13 @@ a:focus-visible {
 .navbar a:hover,
 .navbar a[aria-current="page"] { color: var(--chalk); }
 
-/* light / dark switch at the right end of the navbar (theme.js) */
-.theme-toggle {
-  margin-left: auto;
-  padding: 0.3rem;
-  background: none;
-  border: 0;
-  border-radius: 0.4rem;
-  color: var(--muted);
-  cursor: pointer;
-}
-.theme-toggle:hover { color: var(--chalk); }
-.theme-toggle:focus-visible { outline: 3px solid var(--chalk); outline-offset: 2px; }
-.theme-toggle .icon { width: 1.5rem; height: 1.5rem; vertical-align: middle; }
-
 .navbar .brand {
   margin-right: 0.2rem;
   color: var(--chalk);
 }
 
 /* The poster lettering and the dumbbell are black-on-transparent PNGs used as masks, so they take the
-   text colour of the current theme (light on dark, dark on light). */
+   text colour. */
 .logo { display: block; flex: none; background-color: var(--chalk); mask-repeat: no-repeat; mask-position: center; mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center; -webkit-mask-size: contain; }
 .logo-title { width: 5.2rem; height: 2.9rem; -webkit-mask-image: url("img/logo-title.png"); mask-image: url("img/logo-title.png"); }
 .logo-dumbbell { width: 4.8rem; height: 2.8rem; margin-right: 1rem; -webkit-mask-image: url("img/logo-dumbbell.png"); mask-image: url("img/logo-dumbbell.png"); }
@@ -185,7 +156,7 @@ main p { max-width: 60ch; color: var(--muted); }
   width: clamp(2.3rem, 8vw, 4.5rem);
   background: var(--plate);
   color: var(--on);
-  border-radius: 0.5rem;
+  border-radius: 1.1rem;
   box-shadow: inset 0 0 0 0.25rem rgb(0 0 0 / 0.16);
   font-family: var(--font-display);
   font-size: clamp(0.95rem, 2.6vw, 1.4rem);
