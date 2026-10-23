@@ -38,18 +38,6 @@
         <p class="rest">Ничего не записано.</p>
       {% endfor %}
 
-      {% if plan_by_meal[meal.meal] %}
-        <div class="plan-picks">
-          <span class="muted">Съел по рациону:</span>
-          {% for p in plan_by_meal[meal.meal] %}
-            <form method="post" action="/nutrition/log/from-plan/{{ p.id }}">
-              <input type="hidden" name="eaten_on" value="{{ day }}">
-              <button class="btn-quiet" type="submit">+ {{ p.food }}, {{ p.grams }} г</button>
-            </form>
-          {% endfor %}
-        </div>
-      {% endif %}
-
       <details class="add">
         <summary>{{ icon('plus') }} Добавить другое</summary>
         <form method="post" action="/nutrition/log/add">

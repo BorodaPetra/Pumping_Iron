@@ -1,8 +1,8 @@
-"""Block 6: the daily meal plan and the food diary for nutrition monitoring.
+"""Block 6: the weekly meal plan and the food diary for nutrition monitoring.
 
-  /nutrition       the plan (`diet_items`): foods per meal with calories and macros
+  /nutrition       the plan (`diet_items`): foods per weekday and meal with calories and macros
   /nutrition/log   the diary (`food_log`): what was actually eaten on a given date,
-                   compared with the plan, plus daily totals for the last two weeks
+                   compared with the plan of that weekday
 
 Same pattern as workouts: GET renders the page, changes are form POSTs answered with
 a 303 redirect. The AI trainer fills the plan through `trainer_tools`.
@@ -12,12 +12,12 @@ import sqlite3
 from datetime import date, timedelta
 from typing import Annotated, Literal, get_args
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from pumping_iron.db import get_db, write
 from pumping_iron.web import page
-from pumping_iron.workouts import WEEKDAYS_SHORT
+from pumping_iron.workouts import WEEKDAYS, WEEKDAYS_SHORT
 
 router = APIRouter(prefix="/nutrition")
 
@@ -53,9 +53,23 @@ def group_by_meal(rows: list[sqlite3.Row]) -> tuple[list[dict], dict]:
     return list(meals.values()), day
 
 
-def build_diet(db: sqlite3.Connection) -> tuple[list[dict], dict]:
-    """Return the plan grouped by meal with per-meal and daily totals."""
-    return group_by_meal(db.execute("SELECT * FROM diet_items ORDER BY id").fetchall())
+def build_diet(db: sqlite3.Connection, weekday: int) -> tuple[list[dict], dict]:
+    """Return the plan of one weekday (0 = Monday) grouped by meal with per-meal and daily totals."""
+    return group_by_meal(db.execute("SELECT * FROM diet_items WHERE weekday = ? ORDER BY id", (weekday,)).fetchall())
+
+
+def build_diet_week(db: sqlite3.Connection) -> list[dict]:
+    """Return the plan as seven day dicts: name, meals (see `group_by_meal`) and the totals of the day.
+
+    One query loads the whole week; grouping by weekday happens in Python.
+    """
+    # PERF: one query for the week instead of seven build_diet calls; with a few dozen rows either is instant.
+    rows = db.execute("SELECT * FROM diet_items ORDER BY id").fetchall()
+    days = []
+    for weekday, name in enumerate(WEEKDAYS):
+        meals, totals = group_by_meal([row for row in rows if row["weekday"] == weekday])
+        days.append({"name": name, "meals": meals, "totals": totals})
+    return days
 
 
 def day_label(day: date) -> str:
@@ -65,37 +79,35 @@ def day_label(day: date) -> str:
 
 @router.get("", response_class=HTMLResponse)
 def nutrition_page(request: Request, db: Db) -> HTMLResponse:
-    """Show the meal plan with per-meal and daily totals."""
-    meals, totals = build_diet(db)
-    return page(request, "nutrition.html", "orange", meals=meals, totals=totals)
+    """Show the meal plan of the week: per day, per meal, with totals and the average day."""
+    days = build_diet_week(db)
+    planned = [day["totals"] for day in days if day["totals"]["kcal"]]
+    average = {key: sum(t[key] for t in planned) / len(planned) for key in NUTRIENTS} if planned else None
+    return page(request, "nutrition.html", "orange", days=days, average=average, meals=MEALS)
 
 
 @router.post("/add")
-def add_item(db: Db, meal: Annotated[Meal, Form()], food: Food, grams: Grams, kcal: Kcal,
-             protein_g: Protein, fat_g: Fat, carbs_g: Carbs) -> RedirectResponse:
-    """Add a food to a meal of the plan."""
-    write(db, "INSERT INTO diet_items (meal, food, grams, kcal, protein_g, fat_g, carbs_g) VALUES (?, ?, ?, ?, ?, ?, ?)",
-          (meal, food.strip(), grams, kcal, protein_g, fat_g, carbs_g))
-    return RedirectResponse("/nutrition", status_code=303)
+def add_item(db: Db, weekday: Annotated[int, Form(ge=0, le=6)], meal: Annotated[Meal, Form()], food: Food,
+             grams: Grams, kcal: Kcal, protein_g: Protein, fat_g: Fat, carbs_g: Carbs) -> RedirectResponse:
+    """Add a food to a meal of one weekday (0 = Monday) of the plan; the browser returns to that day."""
+    write(db, "INSERT INTO diet_items (weekday, meal, food, grams, kcal, protein_g, fat_g, carbs_g) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+          (weekday, meal, food.strip(), grams, kcal, protein_g, fat_g, carbs_g))
+    return RedirectResponse(f"/nutrition#day-{weekday}", status_code=303)
 
 
 @router.get("/log", response_class=HTMLResponse)
 def log_page(request: Request, db: Db, day: date | None = None) -> HTMLResponse:
-    """Show the diary for one day (default today) against the plan.
-
-    The plan items are listed as one-click buttons ("eaten as planned").
-    """
+    """Show the diary for one day (default today) against the plan totals of that weekday."""
     day = day or date.today()
     iso = day.isoformat()
     meals, eaten = group_by_meal(
         db.execute("SELECT * FROM food_log WHERE eaten_on = ? ORDER BY id", (iso,)).fetchall()
     )
-    plan_meals, planned = build_diet(db)
+    _, planned = build_diet(db, day.weekday())
     return page(
         request, "nutrition_log.html", "orange",
         day=iso, label=day_label(day), prev_day=(day - timedelta(days=1)).isoformat(),
         next_day=(day + timedelta(days=1)).isoformat(), meals=meals, eaten=eaten, planned=planned,
-        plan_by_meal={m["meal"]: m["items"] for m in plan_meals},
     )
 
 
@@ -105,20 +117,6 @@ def add_log_item(db: Db, eaten_on: Annotated[date, Form()], meal: Annotated[Meal
     """Record a food eaten on a date."""
     write(db, "INSERT INTO food_log (eaten_on, meal, food, grams, kcal, protein_g, fat_g, carbs_g) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
           (eaten_on.isoformat(), meal, food.strip(), grams, kcal, protein_g, fat_g, carbs_g))
-    return RedirectResponse(f"/nutrition/log?day={eaten_on.isoformat()}", status_code=303)
-
-
-@router.post("/log/from-plan/{item_id}")
-def log_from_plan(item_id: int, db: Db, eaten_on: Annotated[date, Form()]) -> RedirectResponse:
-    """Copy a plan item into the diary for a date ("eaten as planned")."""
-    cursor = write(
-        db,
-        """INSERT INTO food_log (eaten_on, meal, food, grams, kcal, protein_g, fat_g, carbs_g)
-           SELECT ?, meal, food, grams, kcal, protein_g, fat_g, carbs_g FROM diet_items WHERE id = ?""",
-        (eaten_on.isoformat(), item_id),
-    )
-    if cursor.rowcount == 0:
-        raise HTTPException(404, "Продукта нет в рационе")
     return RedirectResponse(f"/nutrition/log?day={eaten_on.isoformat()}", status_code=303)
 
 
@@ -133,5 +131,6 @@ def delete_log_item(entry_id: int, db: Db, eaten_on: Annotated[date | None, Form
 @router.post("/{item_id}/delete")
 def delete_item(item_id: int, db: Db) -> RedirectResponse:
     """Remove a food from the plan."""
+    row = db.execute("SELECT weekday FROM diet_items WHERE id = ?", (item_id,)).fetchone()
     write(db, "DELETE FROM diet_items WHERE id = ?", (item_id,))
-    return RedirectResponse("/nutrition", status_code=303)
+    return RedirectResponse(f"/nutrition#day-{row['weekday']}" if row else "/nutrition", status_code=303)

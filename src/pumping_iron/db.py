@@ -6,7 +6,7 @@ Tables:
   exercises      exercise library, each belongs to one muscle group
   program_items  the weekly plan: which exercise on which weekday (0 = Monday)
   log_entries    the training journal: one row per performed set
-  diet_items     the daily meal plan: foods per meal with calories and macros
+  diet_items     the weekly meal plan: foods per weekday (0 = Monday) and meal with calories and macros
   food_log       what was actually eaten, per date (nutrition monitoring)
   measure_types  reference list of body measurements (girths in cm, weight, body fat %)
   measurements   measured values per date and type, for the body block's dynamics
@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS log_entries (
 );
 CREATE TABLE IF NOT EXISTS diet_items (
     id        INTEGER PRIMARY KEY,
+    weekday   INTEGER NOT NULL DEFAULT 0 CHECK (weekday BETWEEN 0 AND 6),
     meal      TEXT NOT NULL CHECK (meal IN ('Завтрак', 'Обед', 'Ужин', 'Перекус')),
     food      TEXT NOT NULL,
     grams     INTEGER NOT NULL CHECK (grams > 0),
@@ -186,6 +187,23 @@ def seed_training(conn: sqlite3.Connection) -> None:
     )
 
 
+def migrate_diet_weekday(conn: sqlite3.Connection) -> None:
+    """Turn the old one-day meal plan into a weekly one in a database created before `weekday` existed.
+
+    The old plan applied to every day, so its rows become Monday's and are copied to the other six days:
+    the plan keeps meaning the same until the user edits a day. Does nothing when the column exists.
+    """
+    if any(col["name"] == "weekday" for col in conn.execute("PRAGMA table_info(diet_items)")):
+        return
+    conn.execute("ALTER TABLE diet_items ADD COLUMN weekday INTEGER NOT NULL DEFAULT 0 CHECK (weekday BETWEEN 0 AND 6)")
+    for weekday in range(1, 7):
+        conn.execute(
+            """INSERT INTO diet_items (weekday, meal, food, grams, kcal, protein_g, fat_g, carbs_g)
+               SELECT ?, meal, food, grams, kcal, protein_g, fat_g, carbs_g FROM diet_items WHERE weekday = 0""",
+            (weekday,),
+        )
+
+
 def init_db() -> None:
     """Create the tables if missing and seed each reference table once.
 
@@ -197,6 +215,7 @@ def init_db() -> None:
     try:
         with conn:
             conn.executescript(SCHEMA)
+            migrate_diet_weekday(conn)
             if not conn.execute("SELECT 1 FROM muscle_groups LIMIT 1").fetchone():
                 seed_training(conn)
             if not conn.execute("SELECT 1 FROM measure_types LIMIT 1").fetchone():

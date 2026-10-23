@@ -1,7 +1,7 @@
 """What the AI trainer can see and do: program/diet/journal/body context and its tools.
 
 The context (exercise library, weekly program, last training days and records, body
-measurements, meal plan, today's diary) is put into
+measurements, weekly meal plan, today's diary) is put into
 the system prompt on every request, so the model always works with the live data.
 The tools (`add_to_program`, `add_to_diet`) are described to the model in the OpenAI
 function-calling format that LM Studio accepts.
@@ -12,7 +12,7 @@ import sqlite3
 from datetime import date
 
 from pumping_iron.body import load_summaries
-from pumping_iron.nutrition import MEALS, build_diet
+from pumping_iron.nutrition import MEALS, build_diet_week
 from pumping_iron.stats import personal_records
 from pumping_iron.workouts import WEEKDAYS, WEEKDAYS_SHORT, build_week, exercise_options
 
@@ -56,13 +56,15 @@ ADD_TO_DIET_TOOL = {
     "function": {
         "name": "add_to_diet",
         "description": (
-            "Добавить продукт или блюдо в рацион питания пользователя (план на день). "
+            "Добавить продукт или блюдо в недельный рацион питания пользователя. "
             "Вызывай по одному разу на каждый продукт. Калории и БЖУ указывай на всю порцию в граммах, "
             "это оценка по справочным значениям."
         ),
         "parameters": {
             "type": "object",
             "properties": {
+                "weekday": {"type": "integer", "minimum": 0, "maximum": 7,
+                            "description": "День недели: 1 = понедельник, 7 = воскресенье, 0 = каждый день недели"},
                 "meal": {"type": "string", "enum": MEALS, "description": "Приём пищи"},
                 "food": {"type": "string", "description": "Название продукта или блюда"},
                 "grams": {"type": "integer", "minimum": 1, "maximum": 5000, "description": "Масса порции, г"},
@@ -71,7 +73,7 @@ ADD_TO_DIET_TOOL = {
                 "fat_g": {"type": "number", "minimum": 0, "description": "Жиры порции, г"},
                 "carbs_g": {"type": "number", "minimum": 0, "description": "Углеводы порции, г"},
             },
-            "required": ["meal", "food", "grams", "kcal", "protein_g", "fat_g", "carbs_g"],
+            "required": ["weekday", "meal", "food", "grams", "kcal", "protein_g", "fat_g", "carbs_g"],
         },
     },
 }
@@ -137,11 +139,12 @@ def build_context(db: sqlite3.Connection) -> str:
            or "отдых")
         for number, day in enumerate(build_week(db), start=1)
     )
-    meals, plan_total = build_diet(db)
     diet = "\n".join(
-        f"- {m['meal']}: "
-        + ("; ".join(f"{i['food']} {i['grams']} г ({i['kcal']} ккал)" for i in m["items"]) or "пусто")
-        for m in meals
+        f"- {day['name']} (день {number}, итого {day['totals']['kcal']} ккал, Б {day['totals']['protein_g']:g} / "
+        f"Ж {day['totals']['fat_g']:g} / У {day['totals']['carbs_g']:g}): "
+        + ("; ".join(f"{m['meal']}: " + ", ".join(f"{i['food']} {i['grams']} г ({i['kcal']} ккал)" for i in m["items"])
+                     for m in day["meals"] if m["items"]) or "пусто")
+        for number, day in enumerate(build_diet_week(db), start=1)
     )
     eaten = db.execute(
         "SELECT COALESCE(SUM(kcal), 0) AS kcal FROM food_log WHERE eaten_on = ?", (date.today().isoformat(),)
@@ -151,8 +154,7 @@ def build_context(db: sqlite3.Connection) -> str:
         f"Сегодня {WEEKDAYS_SHORT[today.weekday()]} {today:%d.%m.%Y}.\n\n"
         f"Справочник упражнений по группам мышц:\n{library}\n\nТекущая программа пользователя:\n{program}\n\n"
         f"{journal_context(db)}\n\n{body_context(db)}\n\n"
-        f"Текущий рацион на день (итого {plan_total['kcal']} ккал, Б {plan_total['protein_g']:g} / "
-        f"Ж {plan_total['fat_g']:g} / У {plan_total['carbs_g']:g}):\n{diet}\n\n"
+        f"Текущий рацион по дням недели:\n{diet}\n\n"
         f"Сегодня по дневнику съедено {eaten['kcal']} ккал."
     )
 
@@ -219,33 +221,41 @@ def add_to_program(db: sqlite3.Connection, args: dict) -> tuple[str, str | None]
 
 
 def add_to_diet(db: sqlite3.Connection, args: dict) -> tuple[str, str | None]:
-    """Insert one food into the meal plan.
+    """Insert one food into the meal plan of a weekday, or of every weekday when `weekday` is 0.
 
     Takes the connection and the model's arguments; returns (result for the model,
-    notice for the user or None on failure). The same food in the same meal is rejected.
+    notice for the user or None on failure). A day that already has the same food in the same
+    meal is skipped; the call fails when no day is left.
     """
     try:
+        weekday = int(args["weekday"])
         meal, food = str(args["meal"]).strip(), _clean_name(args["food"])
         grams, kcal = int(args["grams"]), int(args["kcal"])
         protein, fat, carbs = (float(args[k]) for k in ("protein_g", "fat_g", "carbs_g"))
     except (KeyError, TypeError, ValueError):
-        return _error("нужны meal, food, grams, kcal, protein_g, fat_g, carbs_g (числа)")
+        return _error("нужны weekday, meal, food, grams, kcal, protein_g, fat_g, carbs_g (числа)")
+    if not 0 <= weekday <= 7:
+        return _error("weekday должен быть от 1 (понедельник) до 7 (воскресенье) или 0 для каждого дня")
     if meal not in MEALS:
         return _error(f"meal должен быть одним из: {', '.join(MEALS)}")
     if len(food) > MAX_NAME_LEN:
         return _error(f"название продукта длиннее {MAX_NAME_LEN} символов")
     if not (food and 1 <= grams <= 5000 and 0 <= kcal <= 5000 and 0 <= protein <= 500 and 0 <= fat <= 500 and 0 <= carbs <= 1000):
         return _error("значения вне допустимых диапазонов: grams 1-5000, kcal 0-5000, белки/жиры 0-500, углеводы 0-1000")
-    if any(row["food"].casefold() == food.casefold()
-           for row in db.execute("SELECT food FROM diet_items WHERE meal = ?", (meal,))):
-        return _error(f"«{food}» уже есть в приёме «{meal}»")
+    days = range(7) if weekday == 0 else [weekday - 1]
+    taken = {row["weekday"] for row in db.execute("SELECT weekday, food FROM diet_items WHERE meal = ?", (meal,))
+             if row["food"].casefold() == food.casefold()}
+    days = [d for d in days if d not in taken]
+    if not days:
+        return _error(f"«{food}» уже есть в приёме «{meal}» " + ("в этот день" if weekday else "во все дни"))
     with db:
-        db.execute(
-            "INSERT INTO diet_items (meal, food, grams, kcal, protein_g, fat_g, carbs_g) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (meal, food, grams, kcal, protein, fat, carbs),
+        db.executemany(
+            "INSERT INTO diet_items (weekday, meal, food, grams, kcal, protein_g, fat_g, carbs_g) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            [(d, meal, food, grams, kcal, protein, fat, carbs) for d in days],
         )
-    notice = f"✅ В рацион добавлено: {meal}, {food}, {grams} г, {kcal} ккал (Б {protein:g} / Ж {fat:g} / У {carbs:g})"
-    return json.dumps({"ok": True, "added": food, "meal": meal}, ensure_ascii=False), notice
+    where = WEEKDAYS[days[0]] if len(days) == 1 else f"{len(days)} дн. недели"
+    notice = f"✅ В рацион добавлено: {where}, {meal}, {food}, {grams} г, {kcal} ккал (Б {protein:g} / Ж {fat:g} / У {carbs:g})"
+    return json.dumps({"ok": True, "added": food, "meal": meal, "days_added": len(days)}, ensure_ascii=False), notice
 
 
 TOOL_FUNCTIONS = {"add_to_program": add_to_program, "add_to_diet": add_to_diet}

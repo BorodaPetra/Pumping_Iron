@@ -465,6 +465,8 @@ a.btn-quiet { text-decoration: none; }
 /* ---------- nutrition ---------- */
 
 .totals { margin: 0 0 1.5rem; font-size: 1.1rem; color: var(--chalk); }
+.meal-name { margin: 0.9rem 0 0; font-size: 1.05rem; }
+.meal-name:first-child { margin-top: 0; }
 .day-head p { line-height: 1.4; }
 
 .muted { color: var(--muted); font-size: 0.9rem; }
@@ -473,8 +475,6 @@ a.btn-quiet { text-decoration: none; }
 .day-nav h2 { margin: 0; font-size: 1.5rem; }
 .day-nav a { color: var(--muted); text-decoration: none; font-size: 1.5rem; padding: 0 0.4rem; }
 .day-nav a:hover { color: var(--chalk); }
-
-.plan-picks { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.5rem; margin-top: 0.5rem; }
 
 .history { margin-top: 2.5rem; }
 .history h2 { font-size: 1.25rem; }

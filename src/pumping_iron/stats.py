@@ -182,7 +182,9 @@ def nutrition_days(db: sqlite3.Connection, period: int) -> dict:
         )
     }
     logged = [rows[d.isoformat()] for d in window if d.isoformat() in rows]
-    plan = db.execute("SELECT COALESCE(SUM(kcal), 0) AS kcal FROM diet_items").fetchone()["kcal"]
+    # The plan differs by weekday, so the reference line is the average planned day (days with an empty plan do not count).
+    plan = round(db.execute(
+        "SELECT COALESCE(AVG(kcal), 0) FROM (SELECT SUM(kcal) AS kcal FROM diet_items GROUP BY weekday)").fetchone()[0])
     average = {key: sum(r[key] for r in logged) / len(logged) for key in ("kcal", "protein_g", "fat_g", "carbs_g")} if logged else None
     return {
         "days": days, "logged": len(logged), "plan": plan, "average": average,

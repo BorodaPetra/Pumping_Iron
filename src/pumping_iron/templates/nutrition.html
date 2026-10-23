@@ -4,26 +4,31 @@
 {% block content %}
 <h1 class="sr-only">Питание</h1>
 {{ nutrition_tabs(current) }}
+{% if average %}
 <p class="totals">
-  В день: {{ totals.kcal }} ккал · белки {{ '%g'|format(totals.protein_g) }} г · жиры {{ '%g'|format(totals.fat_g) }} г · углеводы {{ '%g'|format(totals.carbs_g) }} г
+  В среднем за день: {{ average.kcal | round | int }} ккал · белки {{ average.protein_g | round | int }} г · жиры {{ average.fat_g | round | int }} г · углеводы {{ average.carbs_g | round | int }} г
 </p>
+{% endif %}
 
-{% for meal in meals %}
-  <section class="day">
+{% for day in days %}
+  <section class="day" id="day-{{ loop.index0 }}">
     <header class="day-head">
-      <h2>{{ meal.meal }}</h2>
-      {% if meal["items"] %}
-        <p>{{ meal.totals.kcal }} ккал<br>Б {{ '%g'|format(meal.totals.protein_g) }} · Ж {{ '%g'|format(meal.totals.fat_g) }} · У {{ '%g'|format(meal.totals.carbs_g) }}</p>
+      <h2>{{ day.name }}</h2>
+      {% if day.totals.kcal %}
+        <p>{{ day.totals.kcal }} ккал<br>Б {{ '%g'|format(day.totals.protein_g) }} · Ж {{ '%g'|format(day.totals.fat_g) }} · У {{ '%g'|format(day.totals.carbs_g) }}</p>
       {% endif %}
     </header>
 
     <div class="day-body">
-      {% for item in meal["items"] %}
-        <form class="item" method="post" action="/nutrition/{{ item.id }}/delete">
-          <span class="item-name">{{ item.food }}<small>{{ item.grams }} г</small></span>
-          <span class="item-load">{{ item.kcal }} ккал · Б {{ '%g'|format(item.protein_g) }} · Ж {{ '%g'|format(item.fat_g) }} · У {{ '%g'|format(item.carbs_g) }}</span>
-          <button class="btn-quiet" type="submit">{{ icon('trash') }} Убрать</button>
-        </form>
+      {% for meal in day.meals if meal["items"] %}
+        <h3 class="meal-name">{{ meal.meal }} <small class="muted">{{ meal.totals.kcal }} ккал</small></h3>
+        {% for item in meal["items"] %}
+          <form class="item" method="post" action="/nutrition/{{ item.id }}/delete">
+            <span class="item-name">{{ item.food }}<small>{{ item.grams }} г</small></span>
+            <span class="item-load">{{ item.kcal }} ккал · Б {{ '%g'|format(item.protein_g) }} · Ж {{ '%g'|format(item.fat_g) }} · У {{ '%g'|format(item.carbs_g) }}</span>
+            <button class="btn-quiet" type="submit">{{ icon('trash') }} Убрать</button>
+          </form>
+        {% endfor %}
       {% else %}
         <p class="rest">Пока пусто. Добавь продукт или попроси ИИ тренера составить рацион.</p>
       {% endfor %}
@@ -31,7 +36,10 @@
       <details class="add">
         <summary>{{ icon('plus') }} Добавить продукт</summary>
         <form method="post" action="/nutrition/add">
-          <input type="hidden" name="meal" value="{{ meal.meal }}">
+          <input type="hidden" name="weekday" value="{{ loop.index0 }}">
+          <select name="meal" aria-label="Приём пищи" required>
+            {% for name in meals %}<option>{{ name }}</option>{% endfor %}
+          </select>
           <input type="text" name="food" placeholder="Продукт" maxlength="80" aria-label="Продукт" required>
           <input type="number" name="grams" placeholder="г" min="1" max="5000" aria-label="Граммы" required> г
           <input type="number" name="kcal" placeholder="ккал" min="0" max="5000" aria-label="Калории" required> ккал

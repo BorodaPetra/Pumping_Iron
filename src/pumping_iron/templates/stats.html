@@ -104,7 +104,7 @@
       {{ nutrition.average.kcal | round | int }} ккал, белки {{ nutrition.average.protein_g | round | int }} г,
       жиры {{ nutrition.average.fat_g | round | int }} г, углеводы {{ nutrition.average.carbs_g | round | int }} г.</p>
     <figure>
-      <figcaption>Калории по дням за последние {{ nutrition.days }} дн.{% if nutrition.plan %}, пунктир это рацион ({{ nutrition.plan }} ккал){% endif %}</figcaption>
+      <figcaption>Калории по дням за последние {{ nutrition.days }} дн.{% if nutrition.plan %}, пунктир это рацион в среднем за день ({{ nutrition.plan }} ккал){% endif %}</figcaption>
       {{ charts.kcal }}
     </figure>
   {% else %}
