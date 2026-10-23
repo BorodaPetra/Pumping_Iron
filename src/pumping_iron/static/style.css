@@ -358,8 +358,23 @@ a.btn-quiet { text-decoration: none; }
 .rest { margin: 0.5rem 0; }
 
 .add { margin-top: 0.5rem; }
-.add summary { cursor: pointer; color: var(--muted); }
-.add summary:hover { color: var(--chalk); }
+/* the "add" toggle is an outlined button in the plate colour, so it does not blend into the text around it */
+.add summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  padding: 0.4rem 0.9rem;
+  border: 1.5px solid var(--plate);
+  border-radius: 0.4rem;
+  color: var(--plate);
+  font: 600 0.95rem var(--font-display);
+  cursor: pointer;
+  list-style: none;
+  transition: background-color 0.15s, color 0.15s;
+}
+.add summary::-webkit-details-marker { display: none; }
+.add summary:hover, .add[open] > summary { background: var(--plate); color: var(--on); }
+.add summary:focus-visible { outline: 3px solid var(--chalk); outline-offset: 2px; }
 .add form { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-top: 0.75rem; }
 
 /* ---------- exercise library ---------- */
