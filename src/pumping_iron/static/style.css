@@ -492,9 +492,18 @@ a.btn-quiet { text-decoration: none; }
 .chart text { fill: var(--muted); font: 12px var(--font-body); }
 .chart .axis { stroke: var(--steel-light); stroke-width: 1; }
 .chart .col { fill: var(--plate); }
-.chart .col:hover, .chart .dot:hover { fill: var(--chalk); }
 .chart .line { fill: none; stroke: var(--plate); stroke-width: 2; stroke-linejoin: round; }
 .chart .dot { fill: var(--plate); }
+
+/* Hover / keyboard focus on a bar or point: highlight it and show its text in the strip above the plot. */
+.chart .hit { outline: none; }
+.chart .area { fill: transparent; }
+.chart text.tip { fill: var(--chalk); font-weight: 600; visibility: hidden; }
+.chart .guide { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 2 3; visibility: hidden; }
+.chart .hit:hover text.tip, .chart .hit:focus text.tip,
+.chart .hit:hover .guide, .chart .hit:focus .guide { visibility: visible; }
+.chart .hit:hover .col, .chart .hit:focus .col, .chart .hit:hover .dot, .chart .hit:focus .dot { fill: var(--chalk); }
+.chart .hit:hover .dot, .chart .hit:focus .dot { r: 5; }
 .chart .ref { stroke: var(--orange); stroke-width: 1.5; stroke-dasharray: 5 4; }
 
 /* sets per muscle group: name, bar, number */

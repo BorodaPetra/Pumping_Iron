@@ -188,6 +188,7 @@ def nutrition_days(db: sqlite3.Connection, period: int) -> dict:
         "days": days, "logged": len(logged), "plan": plan, "average": average,
         "values": [rows[d.isoformat()]["kcal"] if d.isoformat() in rows else 0 for d in window],
         "labels": [f"{d:%d.%m}" for d in window],
+        "tips": [f"{d:%d.%m.%Y}" for d in window],
     }
 
 
@@ -218,15 +219,17 @@ def stats_page(request: Request, db: Db, period: int = DEFAULT_PERIOD, exercise_
     progress = exercise_progress(db, since, exercise_id)
     nutrition = nutrition_days(db, period)
     week_labels = [f"{w:%d.%m}" for w in weeks]
+    week_tips = [f"неделя с {w:%d.%m.%Y}" for w in weeks]
     trained = tiles["workouts"] > 0  # an all-empty weekly chart would say nothing: the page shows a hint instead
     charts = {
-        "days": bar_chart([w["days"] for w in weeks.values()], week_labels, "Тренировок по неделям", "тренировок")
+        "days": bar_chart([w["days"] for w in weeks.values()], week_labels, "Тренировок по неделям", "тренировок", tips=week_tips)
         if trained else None,
-        "tonnage": bar_chart([w["tonnage"] for w in weeks.values()], week_labels, "Тоннаж по неделям", "кг")
+        "tonnage": bar_chart([w["tonnage"] for w in weeks.values()], week_labels, "Тоннаж по неделям", "кг", tips=week_tips)
         if trained else None,
         "progress": line_chart(progress["points"], f"Прогресс: {progress['selected']['name']}", progress["unit"])
         if progress["points"] else None,
-        "kcal": bar_chart(nutrition["values"], nutrition["labels"], "Калории по дням", "ккал", nutrition["plan"] or None)
+        "kcal": bar_chart(nutrition["values"], nutrition["labels"], "Калории по дням", "ккал", nutrition["plan"] or None,
+                          tips=nutrition["tips"])
         if nutrition["logged"] else None,
     }
     body = {}

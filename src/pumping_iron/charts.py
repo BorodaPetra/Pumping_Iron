@@ -1,9 +1,12 @@
 """Small server-side SVG charts for the statistics page: bars and a line.
 
-The charts are drawn as inline SVG (no script, no external library, no request), coloured
-through CSS classes (`.chart`, `.col`, `.line`, `.dot`, `.ref`, `.axis` in style.css) so they
-follow the section's plate colour. Every bar and point carries a <title>, which browsers show
-as a tooltip, and the whole figure has an `aria-label` for screen readers.
+The charts are drawn as inline SVG (no external library, no request), coloured through CSS
+classes (`.chart`, `.col`, `.line`, `.dot`, `.ref`, `.axis`, `.hit`, `.tip`, `.guide` in
+style.css) so they follow the section's plate colour. Every bar and point sits in a
+`.hit` group: hovering (or focusing with the keyboard) the group shows, in the empty strip above
+the plot, a text such as "12.10.2026: 105 кг" and a dotted guide line down to the mark. This is
+pure CSS: the strip holds no marks, so a later bar can never cover the text. The group also
+has an `aria-label` with the same text for screen readers.
 """
 
 from datetime import date
@@ -11,15 +14,18 @@ from math import ceil
 
 from markupsafe import Markup, escape
 
-# viewBox size and the empty margins around the plot; the SVG scales to the width of its box.
+# viewBox size and the margins around the plot; the SVG scales to the width of its box.
+# The top margin is the strip where the hover text appears.
 W, H = 480, 170
-PAD_L, PAD_R, PAD_T, PAD_B = 44, 8, 18, 24
+PAD_L, PAD_R, PAD_T, PAD_B = 44, 8, 28, 24
+TIP_Y = 14
 MAX_X_LABELS = 6
 
 
 def _fmt(value: float) -> str:
-    """Format a number for labels: no trailing zeros, a thin space between thousands."""
-    return f"{value:,.1f}".rstrip("0").rstrip(".").replace(",", " ")
+    """Format a number for labels: one decimal (none from 1000 up, so the y-axis label fits the margin), no trailing zeros, a thin space between thousands."""
+    text = f"{value:,.0f}" if abs(value) >= 1000 else f"{value:,.1f}".rstrip("0").rstrip(".")
+    return text.replace(",", " ")
 
 
 def _open(title: str) -> str:
@@ -36,28 +42,46 @@ def _x_labels(labels: list[str], centers: list[float]) -> str:
     )
 
 
-def bar_chart(values: list[float], labels: list[str], title: str, unit: str = "",
-              reference: float | None = None) -> Markup:
-    """Draw one bar per value; `labels[i]` names bar i (x axis and tooltip).
+def _hit(x: float, mark_y: float, text: str, area: str, mark: str) -> str:
+    """Return the hover group of one bar or point.
 
-    `unit` is appended to the tooltip and the top label, `reference` draws a dashed horizontal
-    line (for example the planned calories). Zero values draw no bar. Returns the <svg> markup.
+    `x` is the centre of the mark and `mark_y` its top / centre (where the guide line ends),
+    `text` the hover text, `area` an invisible shape that makes the target easy to hit and
+    `mark` the visible shape. The text is anchored left, centred or right depending on where
+    `x` lies, so it never runs out of the picture.
     """
+    anchor = "start" if x < W * 0.25 else "end" if x > W * 0.75 else "middle"
+    text = escape(text)
+    return (
+        f'<g class="hit" tabindex="0" role="img" aria-label="{text}">{area}{mark}'
+        f'<line class="guide" x1="{x:.1f}" x2="{x:.1f}" y1="{TIP_Y + 4}" y2="{mark_y:.1f}"/>'
+        f'<text class="tip" x="{x:.1f}" y="{TIP_Y}" text-anchor="{anchor}">{text}</text></g>'
+    )
+
+
+def bar_chart(values: list[float], labels: list[str], title: str, unit: str = "",
+              reference: float | None = None, tips: list[str] | None = None) -> Markup:
+    """Draw one bar per value; `labels[i]` names bar i on the x axis.
+
+    `tips[i]` (default: the label) names the bar in the hover text, which reads
+    "<tip>: <value> <unit>"; `unit` also follows the top value. `reference` draws a dashed
+    horizontal line (for example the planned calories). Zero values draw no bar and have no
+    hover text. Returns the <svg> markup.
+    """
+    tips = tips or labels
     top = max(max(values, default=0), reference or 0) or 1
     plot_w, plot_h = W - PAD_L - PAD_R, H - PAD_T - PAD_B
     slot = plot_w / max(len(values), 1)
     bar_w = slot * 0.7
     base_y = PAD_T + plot_h
     parts = [_open(title), f'<line class="axis" x1="{PAD_L}" x2="{W - PAD_R}" y1="{base_y}" y2="{base_y}"/>']
-    centers = []
-    for i, (value, label) in enumerate(zip(values, labels)):
-        centers.append(PAD_L + i * slot + slot / 2)
+    centers = [PAD_L + i * slot + slot / 2 for i in range(len(values))]
+    for center, value, tip in zip(centers, values, tips):
         if value > 0:
             height = plot_h * value / top
-            parts.append(
-                f'<rect class="col" x="{centers[i] - bar_w / 2:.1f}" y="{base_y - height:.1f}" '
-                f'width="{bar_w:.1f}" height="{height:.1f}"><title>{escape(label)}: {_fmt(value)} {escape(unit)}</title></rect>'
-            )
+            area = f'<rect class="area" x="{center - slot / 2:.1f}" y="{PAD_T}" width="{slot:.1f}" height="{plot_h}"/>'
+            mark = f'<rect class="col" x="{center - bar_w / 2:.1f}" y="{base_y - height:.1f}" width="{bar_w:.1f}" height="{height:.1f}"/>'
+            parts.append(_hit(center, base_y - height, f"{tip}: {_fmt(value)} {unit}".strip(), area, mark))
     if reference:
         y = base_y - plot_h * reference / top
         parts.append(f'<line class="ref" x1="{PAD_L}" x2="{W - PAD_R}" y1="{y:.1f}" y2="{y:.1f}"/>'
@@ -74,7 +98,8 @@ def line_chart(points: list[tuple[date, float]], title: str, unit: str = "") -> 
 
     `points` is [(date, value)] sorted by date. The y axis spans the smallest to the largest
     value with a small margin and is labelled with those two values; the first and last date
-    label the x axis. Returns the <svg> markup.
+    label the x axis. The hover text of a point reads "dd.mm.yyyy: value unit".
+    Returns the <svg> markup.
     """
     plot_w, plot_h = W - PAD_L - PAD_R, H - PAD_T - PAD_B
     values = [v for _, v in points]
@@ -95,7 +120,9 @@ def line_chart(points: list[tuple[date, float]], title: str, unit: str = "") -> 
     if len(coords) > 1:
         parts.append('<polyline class="line" points="' + " ".join(f"{x:.1f},{y:.1f}" for x, y in coords) + '"/>')
     for (day, value), (x, y) in zip(points, coords):
-        parts.append(f'<circle class="dot" cx="{x:.1f}" cy="{y:.1f}" r="3.5"><title>{day:%d.%m.%Y}: {_fmt(value)} {escape(unit)}</title></circle>')
+        area = f'<circle class="area" cx="{x:.1f}" cy="{y:.1f}" r="11"/>'
+        mark = f'<circle class="dot" cx="{x:.1f}" cy="{y:.1f}" r="3.5"/>'
+        parts.append(_hit(x, y, f"{day:%d.%m.%Y}: {_fmt(value)} {unit}".strip(), area, mark))
     parts.append(f'<text x="{PAD_L - 4}" y="{PAD_T + 4}" text-anchor="end">{_fmt(max(values))}</text>')
     parts.append(f'<text x="{PAD_L - 4}" y="{PAD_T + plot_h}" text-anchor="end">{_fmt(min(values))}</text>')
     parts.append(f'<text x="{PAD_L}" y="{H - 6}" text-anchor="start">{first:%d.%m.%y}</text>')
