@@ -1,29 +1,11 @@
 {% extends "base.html" %}
 {% block content %}
 <section class="hero">
-  <h1>Что на штанге сегодня?</h1>
-  <p>Каждый блин ведёт в свой раздел.</p>
-  {# Three plates per side. In the DOM the first plate of a side is the innermost one. #}
-  <div class="barbell">
-    <div class="sleeve"></div>
-    <div class="side side-left">
-      {% for item in nav[:3] %}
-        <a class="plate plate-white" href="{{ item.path }}" style="--i: {{ loop.index0 }}">{{ item.title }}</a>
-      {% endfor %}
-    </div>
-    <div class="collar"></div>
-    <div class="bar"></div>
-    <div class="collar"></div>
-    <div class="side side-right">
-      {% for item in nav[3:6] %}
-        <a class="plate plate-white" href="{{ item.path }}" style="--i: {{ loop.index0 }}">{{ item.title }}</a>
-      {% endfor %}
-    </div>
-    <div class="sleeve"></div>
-  </div>
+  <h1 class="sr-only">Pumping Iron</h1>
+  <img class="hero-photo" src="{{ url_for('static', path='img/hero-bicep.webp') }}" alt="">
 </section>
 
-{# Quote of the day under the barbell: one block, or the original next to its Russian translation.
+{# Quote of the day under the photo: one block, or the original next to its Russian translation.
    The words appear one after another (see .quote in style.css). #}
 {% macro block(text, label, caption, lang) %}
 <figure class="quote" lang="{{ lang }}" style="--n: {{ text.split()|length }}">
