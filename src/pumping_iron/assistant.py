@@ -12,6 +12,11 @@ Addresses, keys and model names come from the environment so nothing is hard-cod
 Either model can change the user's data through tools (see `trainer_tools`): when it
 answers with tool calls, the server runs them, tells the user what was done, feeds the
 results back to the model and lets it continue.
+
+Up to MAX_PHOTOS progress photos (chosen on the page) can be attached to a message; they are
+read from the private photo storage and sent to the model as images (the local model has to
+support images, Claude does). The prompt context also holds the training journal and the
+body measurements, not only the program and the diet.
 """
 
 import json
@@ -22,11 +27,12 @@ from typing import Literal
 
 import anthropic
 import httpx
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from pumping_iron.db import connect
+from pumping_iron.photos import load_photos
 from pumping_iron.trainer_tools import TOOLS, build_context, run_tool
 from pumping_iron.web import page
 
@@ -58,8 +64,13 @@ SYSTEM_PROMPT = (
     "Для обычных вопросов и советов инструменты не нужны. После вызовов инструментов обязательно напиши "
     "короткий итог текстом: что добавлено и чего не хватило. "
     "Калории и БЖУ это оценки по справочным значениям, говори об этом.\n\n"
-    "Ниже актуальные данные пользователя."
+    "К сообщению могут быть приложены фото прогресса (даты и ракурсы указаны в тексте). Описывай только то, "
+    "что видно: пропорции, симметрию, осанку, заметные изменения между фото. Это оценка по картинке, а не "
+    "измерение: не называй процент жира и вес, не ставь диагнозов. Для расчётов опирайся на замеры и журнал ниже.\n\n"
+    "Ниже актуальные данные пользователя: программа, журнал, замеры тела и питание."
 )
+
+MAX_PHOTOS = 2
 
 router = APIRouter()
 
@@ -77,10 +88,42 @@ class Message(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    """Whole conversation so far plus the chosen model; the server keeps no chat state."""
+    """Whole conversation so far, the chosen model and progress photos for the last message.
+
+    The server keeps no chat state, so the photos are sent with the message they belong to
+    and are not part of the history that follows.
+    """
 
     messages: list[Message]
     provider: Literal["local", "claude"] = "local"
+    photo_ids: list[int] = Field(default_factory=list, max_length=MAX_PHOTOS)
+
+
+def with_photos(messages: list[Message], photos: list[dict], image_part) -> list[dict]:
+    """Return the messages as dicts; the last one carries the photos when there are any.
+
+    The text of that message gets a line naming the photos (date and pose), followed by one
+    image part per photo. `image_part(photo)` builds the image part in the format of the
+    model in use (OpenAI data URL for LM Studio, base64 source block for Claude).
+    """
+    result = [m.model_dump() for m in messages]
+    if photos:
+        names = "; ".join(f"{i}) {p['label']}" for i, p in enumerate(photos, start=1))
+        result[-1]["content"] = [
+            {"type": "text", "text": f"{result[-1]['content']}\n\nПриложены фото прогресса: {names}."},
+            *(image_part(p) for p in photos),
+        ]
+    return result
+
+
+def local_image_part(photo: dict) -> dict:
+    """An image as an OpenAI-style content part with a data URL (what LM Studio accepts)."""
+    return {"type": "image_url", "image_url": {"url": f"data:{photo['media_type']};base64,{photo['b64']}"}}
+
+
+def claude_image_part(photo: dict) -> dict:
+    """An image as an Anthropic content block with a base64 source."""
+    return {"type": "image", "source": {"type": "base64", "media_type": photo["media_type"], "data": photo["b64"]}}
 
 
 def event(kind: str, value: str) -> str:
@@ -110,10 +153,12 @@ def parse_sse_line(line: str) -> dict | None:
     return payload if isinstance(payload, dict) else None
 
 
-async def _stream_local(db: sqlite3.Connection, system: str, messages: list[Message]) -> AsyncIterator[str]:
+async def _stream_local(db: sqlite3.Connection, system: str, messages: list[Message],
+                        photos: list[dict]) -> AsyncIterator[str]:
     """Yield the reply of the local LM Studio model as NDJSON events, running tool calls along the way.
 
-    Takes the connection, the full system prompt and the conversation history. Each round
+    Takes the connection, the full system prompt, the conversation history and the photos of
+    the last message (the model must accept images, LM Studio answers with an error if not). Each round
     calls LM Studio with `stream=true` and forwards the text of every SSE chunk; tool-call
     fragments are collected per call index. If the round ended with tool calls, they are
     executed against the database, a "notice" event per successful change is yielded, and
@@ -123,7 +168,7 @@ async def _stream_local(db: sqlite3.Connection, system: str, messages: list[Mess
     """
     try:
         payload_messages = [{"role": "system", "content": system}]
-        payload_messages += [m.model_dump() for m in messages]
+        payload_messages += with_photos(messages, photos, local_image_part)
         # PERF: one shared AsyncClient (created at app startup) reuses the TCP connection
         # to LM Studio instead of opening a new one per message.
         async with httpx.AsyncClient(timeout=httpx.Timeout(300, connect=5)) as client:
@@ -186,10 +231,11 @@ async def _stream_local(db: sqlite3.Connection, system: str, messages: list[Mess
         yield event("error", f"Ошибка LM Studio: {exc}")
 
 
-async def _stream_claude(db: sqlite3.Connection, system: str, messages: list[Message]) -> AsyncIterator[str]:
+async def _stream_claude(db: sqlite3.Connection, system: str, messages: list[Message],
+                         photos: list[dict]) -> AsyncIterator[str]:
     """Yield the reply of Claude (Anthropic API) as NDJSON events, running tool calls along the way.
 
-    Same contract as `_stream_local`. Each round streams one Messages request and forwards the
+    Same contract as `_stream_local`, photos included. Each round streams one Messages request and forwards the
     text deltas; when the finished message asks for tools they are executed, a "notice" event
     is yielded per successful change, and the whole assistant message (thinking blocks
     included, the API needs them back) plus the tool results go into the next round. The
@@ -201,7 +247,7 @@ async def _stream_claude(db: sqlite3.Connection, system: str, messages: list[Mes
         return
     # PERF: one shared AsyncAnthropic created at app startup would reuse the connection pool across messages.
     client = anthropic.AsyncAnthropic()
-    api_messages = [m.model_dump() for m in messages]
+    api_messages = with_photos(messages, photos, claude_image_part)
     try:
         for round_number in range(MAX_TOOL_ROUNDS):
             tools = CLAUDE_TOOLS if round_number < MAX_TOOL_ROUNDS - 1 else anthropic.omit
@@ -238,17 +284,18 @@ async def _stream_claude(db: sqlite3.Connection, system: str, messages: list[Mes
         yield event("error", f"Ошибка Anthropic API ({exc.status_code}): {exc.message}")
 
 
-async def stream_reply(messages: list[Message], provider: str) -> AsyncIterator[str]:
+async def stream_reply(messages: list[Message], provider: str, photos: list[dict]) -> AsyncIterator[str]:
     """Yield the trainer's reply as NDJSON events from the chosen model ("local" or "claude").
 
     Builds the system prompt with the live data once per request (it reflects the data at the
     start of the chat turn) and closes the database connection when the stream ends.
+    `photos` (already loaded, see `photos.load_photos`) go with the last message.
     """
     db = connect()
     try:
         system = f"{SYSTEM_PROMPT}\n\n{build_context(db)}"
         backend = _stream_claude if provider == "claude" else _stream_local
-        async for item in backend(db, system, messages):
+        async for item in backend(db, system, messages, photos):
             yield item
     finally:
         db.close()
@@ -256,13 +303,27 @@ async def stream_reply(messages: list[Message], provider: str) -> AsyncIterator[
 
 @router.get("/assistant", response_class=HTMLResponse)
 async def assistant_page(request: Request) -> HTMLResponse:
-    """The chat page; tells the template whether the Claude option can be used and which model it is."""
-    return page(request, "assistant.html", "yellow", claude_ready=claude_ready(), claude_model=CLAUDE_MODEL)
+    """The chat page: model picker state plus the latest photos that can be attached to a message."""
+    db = connect()
+    try:
+        photos = db.execute("SELECT id, taken_on, pose FROM photos ORDER BY taken_on DESC, id DESC LIMIT 12").fetchall()
+    finally:
+        db.close()
+    return page(request, "assistant.html", "yellow", claude_ready=claude_ready(), claude_model=CLAUDE_MODEL,
+                photos=photos, max_photos=MAX_PHOTOS)
 
 
 @router.post("/api/chat")
 async def chat(request: ChatRequest) -> StreamingResponse:
-    """Stream the trainer's answer as NDJSON events (one JSON object per line, see `event`)."""
+    """Stream the trainer's answer as NDJSON events (one JSON object per line, see `event`).
+
+    Photos are attached to the last message, which must then be the user's (422 otherwise);
+    an unknown photo id is a 404 before anything is streamed.
+    """
+    if request.photo_ids and (not request.messages or request.messages[-1].role != "user"):
+        raise HTTPException(422, "Фото можно приложить только к сообщению пользователя")
+    # PERF: load_photos reads files synchronously (up to 10 MB each); asyncio.to_thread would keep the loop free.
+    photos = load_photos(request.photo_ids)
     return StreamingResponse(
-        stream_reply(request.messages, request.provider), media_type="application/x-ndjson; charset=utf-8"
+        stream_reply(request.messages, request.provider, photos), media_type="application/x-ndjson; charset=utf-8"
     )

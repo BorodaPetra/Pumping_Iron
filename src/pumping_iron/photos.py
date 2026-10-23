@@ -7,6 +7,7 @@ Files live in `data/photos/` next to the database under generated names; the tab
 It is shown when the app is open; nothing runs in the background.
 """
 
+import base64
 import sqlite3
 import uuid
 from datetime import date
@@ -79,6 +80,33 @@ def photo_reminder() -> str | None:
 
 
 templates.env.globals["photo_reminder"] = photo_reminder
+
+
+def load_photos(photo_ids: list[int]) -> list[dict]:
+    """Read the chosen photos for the AI trainer: [{label, media_type, b64}] in the given order.
+
+    `label` is "dd.mm.yyyy, pose", `b64` the base64 text of the file. Raises HTTP 404 when an id or
+    its file is missing. Opens its own connection because the chat endpoint streams without one.
+    """
+    # PERF: the files are read and encoded as they are (up to 10 MB each); shrinking them to about
+    # 1024 px with Pillow first would cut the request size and the model's image processing time.
+    conn = connect()
+    try:
+        photos = []
+        for photo_id in photo_ids:
+            row = conn.execute("SELECT taken_on, pose, filename FROM photos WHERE id = ?", (photo_id,)).fetchone()
+            path = PHOTOS_DIR / row["filename"] if row else None
+            if path is None or not path.is_file():
+                raise HTTPException(404, "Фото не найдено")
+            data = path.read_bytes()
+            photos.append({
+                "label": f"{date.fromisoformat(row['taken_on']):%d.%m.%Y}, {row['pose'].lower()}",
+                "media_type": detect_image(data[:12])[1],
+                "b64": base64.b64encode(data).decode("ascii"),
+            })
+        return photos
+    finally:
+        conn.close()
 
 
 @router.get("", response_class=HTMLResponse)

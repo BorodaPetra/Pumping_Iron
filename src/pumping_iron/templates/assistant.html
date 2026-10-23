@@ -16,6 +16,22 @@
   <div class="chat-log" id="chat-log" aria-live="polite">
     <p class="chat-empty" id="chat-empty">Спроси про программу, технику упражнения или восстановление.</p>
   </div>
+  {# Progress photos to attach to the next message (at most max_photos); chat.js reads the ticked boxes. #}
+  {% if photos %}
+  <details class="photo-pick" id="photo-pick" data-max="{{ max_photos }}">
+    <summary>{{ icon('camera') }} Приложить фото прогресса <span class="muted" id="photo-count"></span></summary>
+    <p class="muted">До {{ max_photos }} фото, они уходят только с одним следующим сообщением. Например: «сравни эти два фото».</p>
+    <div class="photo-grid">
+      {% for p in photos %}
+        <label>
+          <input type="checkbox" value="{{ p.id }}" data-label="{{ p.taken_on[8:10] }}.{{ p.taken_on[5:7] }}.{{ p.taken_on[:4] }}, {{ p.pose|lower }}">
+          <img src="/body/photos/{{ p.id }}/file" alt="" loading="lazy">
+          <span>{{ p.taken_on[8:10] }}.{{ p.taken_on[5:7] }} {{ p.pose|lower }}</span>
+        </label>
+      {% endfor %}
+    </div>
+  </details>
+  {% endif %}
   <form class="chat-form" id="chat-form">
     <textarea id="chat-input" rows="2" placeholder="Например: чем заменить жим лёжа при боли в плече?" required></textarea>
     <button type="submit" id="chat-send">{{ icon('send') }} Отправить</button>

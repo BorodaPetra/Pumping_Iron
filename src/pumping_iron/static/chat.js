@@ -1,4 +1,5 @@
-// Chat page: sends the conversation and the chosen model to POST /api/chat and renders the streamed reply.
+// Chat page: sends the conversation, the chosen model and the ticked progress photos to POST /api/chat
+// and renders the streamed reply.
 // The reply is NDJSON: one {"type": "text" | "notice" | "error", "value": string} per line.
 
 const log = document.getElementById("chat-log");
@@ -31,12 +32,41 @@ const history = [];
 // True while a reply is streaming; blocks a second send (Enter bypasses the disabled button).
 let sending = false;
 
+// Progress photos: ticked boxes in the picker are attached to the next message only.
+const photoPick = document.getElementById("photo-pick");
+const photoBoxes = photoPick ? [...photoPick.querySelectorAll("input[type=checkbox]")] : [];
+const photoCount = document.getElementById("photo-count");
+
+/** Keep at most data-max boxes ticked (the rest are disabled) and show how many are chosen. */
+function updatePhotoPick() {
+  if (!photoPick) return;
+  const chosen = photoBoxes.filter((box) => box.checked).length;
+  const max = Number(photoPick.dataset.max);
+  photoBoxes.forEach((box) => { box.disabled = !box.checked && chosen >= max; });
+  photoCount.textContent = chosen ? `(выбрано: ${chosen})` : "";
+}
+photoBoxes.forEach((box) => box.addEventListener("change", updatePhotoPick));
+
+/** Return the ticked photos as [{id, label}] and untick them: they belong to one message. */
+function takePhotos() {
+  const taken = photoBoxes.filter((box) => box.checked).map((box) => ({ id: Number(box.value), label: box.dataset.label }));
+  photoBoxes.forEach((box) => { box.checked = false; });
+  updatePhotoPick();
+  return taken;
+}
+
 /** Append a message bubble to the log and return its element (text is set via textContent, never HTML). */
-function addBubble(role, text) {
+function addBubble(role, text, photos = []) {
   empty.hidden = true;
   const bubble = document.createElement("div");
   bubble.className = `bubble bubble-${role}`;
   bubble.textContent = text;
+  if (photos.length) {
+    const note = document.createElement("div");
+    note.className = "attach";
+    note.textContent = `Фото: ${photos.map((p) => p.label).join("; ")}`;
+    bubble.appendChild(note);
+  }
   log.appendChild(bubble);
   log.scrollTop = log.scrollHeight;
   return bubble;
@@ -63,7 +93,8 @@ async function* readEvents(response) {
 async function send(text) {
   sending = true;
   history.push({ role: "user", content: text });
-  addBubble("user", text);
+  const photos = takePhotos();
+  addBubble("user", text, photos);
   const bubble = addBubble("assistant", "…");
   sendButton.disabled = true;
 
@@ -77,7 +108,7 @@ async function send(text) {
     const response = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages: history, provider: currentProvider() }),
+      body: JSON.stringify({ messages: history, provider: currentProvider(), photo_ids: photos.map((p) => p.id) }),
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
 

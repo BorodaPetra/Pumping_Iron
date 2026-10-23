@@ -1,6 +1,7 @@
-"""What the AI trainer can see and do: program/diet context and its tools.
+"""What the AI trainer can see and do: program/diet/journal/body context and its tools.
 
-The context (exercise library, weekly program, meal plan, today's diary) is put into
+The context (exercise library, weekly program, last training days and records, body
+measurements, meal plan, today's diary) is put into
 the system prompt on every request, so the model always works with the live data.
 The tools (`add_to_program`, `add_to_diet`) are described to the model in the OpenAI
 function-calling format that LM Studio accepts.
@@ -10,8 +11,14 @@ import json
 import sqlite3
 from datetime import date
 
+from pumping_iron.body import load_summaries
 from pumping_iron.nutrition import MEALS, build_diet
-from pumping_iron.workouts import WEEKDAYS, build_week, exercise_options
+from pumping_iron.stats import personal_records
+from pumping_iron.workouts import WEEKDAYS, WEEKDAYS_SHORT, build_week, exercise_options
+
+# How much history goes into the prompt: the last training days, and the period of the body changes.
+JOURNAL_DAYS = 5
+BODY_PERIOD_DAYS = 90
 
 # Same limit as the web forms (nutrition.py, workouts.py), so the model cannot create longer names.
 MAX_NAME_LEN = 80
@@ -72,8 +79,54 @@ ADD_TO_DIET_TOOL = {
 TOOLS = [ADD_TO_PROGRAM_TOOL, ADD_TO_DIET_TOOL]
 
 
+def journal_context(db: sqlite3.Connection) -> str:
+    """Describe the last JOURNAL_DAYS training days and the personal records as text.
+
+    A set is written "weight kg x reps"; a set without added weight is "N повт.". Returns
+    a line saying the journal is empty when nothing was logged.
+    """
+    # PERF: `personal_records` groups the whole journal on every chat message; a table of
+    # records updated when a set is logged would make this constant-time as the journal grows.
+    rows = db.execute(
+        """SELECT l.performed_on, e.name, l.reps, l.weight_kg
+           FROM log_entries l JOIN exercises e ON e.id = l.exercise_id
+           WHERE l.performed_on IN (SELECT DISTINCT performed_on FROM log_entries ORDER BY performed_on DESC LIMIT ?)
+           ORDER BY l.performed_on DESC, l.id""",
+        (JOURNAL_DAYS,),
+    ).fetchall()
+    if not rows:
+        return "Журнал тренировок пуст."
+
+    def set_text(weight: float, reps: int) -> str:
+        return f"{weight:g}×{reps}" if weight else f"{reps} повт."
+
+    days: dict[str, dict[str, list[str]]] = {}
+    for row in rows:
+        days.setdefault(row["performed_on"], {}).setdefault(row["name"], []).append(set_text(row["weight_kg"], row["reps"]))
+    lines = []
+    for iso, exercises in days.items():
+        day = date.fromisoformat(iso)
+        lines.append(f"- {WEEKDAYS_SHORT[day.weekday()]} {day:%d.%m.%Y}: "
+                     + "; ".join(f"{name} {', '.join(sets)}" for name, sets in exercises.items()))
+    records = "; ".join(f"{r['name']} {set_text(r['weight_kg'], r['reps'])}" for r in personal_records(db))
+    return ("Журнал тренировок, последние дни (подход = вес кг × повторения):\n" + "\n".join(lines)
+            + f"\n\nЛичные рекорды (самый тяжёлый подход): {records}")
+
+
+def body_context(db: sqlite3.Connection) -> str:
+    """Describe the latest body measurements and their change over BODY_PERIOD_DAYS as text."""
+    types, summaries = load_summaries(db, BODY_PERIOD_DAYS)
+    lines = []
+    for t in types:
+        s = summaries.get(t["key"])
+        if s:
+            change = f", {s['pct_text']} за {BODY_PERIOD_DAYS} дн." if s["pct_text"] else ""
+            lines.append(f"- {t['name']}: {s['value']:g} {t['unit']} (замер {s['date']}{change})")
+    return "Замеры тела:\n" + "\n".join(lines) if lines else "Замеров тела пока нет."
+
+
 def build_context(db: sqlite3.Connection) -> str:
-    """Describe the library, program, meal plan and today's intake as text for the system prompt."""
+    """Describe the library, program, meal plan, intake, journal and body measurements as text for the system prompt."""
     library = "\n".join(
         f"- {group}: {', '.join(e['name'] for e in exercises)}"
         for group, exercises in exercise_options(db).items()
@@ -93,8 +146,11 @@ def build_context(db: sqlite3.Connection) -> str:
     eaten = db.execute(
         "SELECT COALESCE(SUM(kcal), 0) AS kcal FROM food_log WHERE eaten_on = ?", (date.today().isoformat(),)
     ).fetchone()
+    today = date.today()
     return (
+        f"Сегодня {WEEKDAYS_SHORT[today.weekday()]} {today:%d.%m.%Y}.\n\n"
         f"Справочник упражнений по группам мышц:\n{library}\n\nТекущая программа пользователя:\n{program}\n\n"
+        f"{journal_context(db)}\n\n{body_context(db)}\n\n"
         f"Текущий рацион на день (итого {plan_total['kcal']} ккал, Б {plan_total['protein_g']:g} / "
         f"Ж {plan_total['fat_g']:g} / У {plan_total['carbs_g']:g}):\n{diet}\n\n"
         f"Сегодня по дневнику съедено {eaten['kcal']} ккал."
