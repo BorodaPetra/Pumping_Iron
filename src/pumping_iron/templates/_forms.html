@@ -18,7 +18,7 @@
 {% macro section_tabs(tabs, current) %}
 <div class="tabs">
   {% for path, label, icon_name in tabs %}
-    <a href="{{ path }}"{% if current == path %} aria-current="page"{% endif %}>{{ icon(icon_name) }} {{ label }}</a>
+    <a href="{{ path }}"{% if current == path %} aria-current="page"{% endif %}>{{ icon(icon_name) }} <span class="lbl" data-text="{{ label }}">{{ label }}</span></a>
   {% endfor %}
 </div>
 {% endmacro %}

@@ -98,7 +98,6 @@ a:focus-visible {
 
 .navbar a:hover,
 .navbar a[aria-current="page"] { color: var(--chalk); }
-.navbar a[aria-current="page"] { border-bottom-color: var(--plate); }
 
 /* icon in the section's plate colour in front of each section link */
 .navbar a .icon { width: 1.5rem; height: 1.5rem; color: var(--plate); }
@@ -408,7 +407,6 @@ a.btn-quiet { text-decoration: none; }
   border-bottom: 2px solid transparent;
 }
 
-.tabs a[aria-current="page"] { color: var(--chalk); border-bottom-color: var(--plate); }
 
 /* ---------- weekly program: a gym whiteboard, day label left, exercises right ---------- */
 
@@ -514,8 +512,26 @@ main.plate-blue { max-width: 80rem; }
 
 .periods { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 1rem; margin-bottom: 1.25rem; }
 .periods a { color: var(--muted); text-decoration: none; padding: 0.2rem 0; border-bottom: 2px solid transparent; }
-.periods a:hover, .periods a[aria-current] { color: var(--chalk); }
-.periods a[aria-current] { border-bottom-color: var(--plate); }
+
+/* Navbar, tabs and period links: the selected one is bold and its underline in the plate colour draws in
+   from the centre (also as a preview on hover). `.lbl::after` is an invisible bold copy of the label, so a link
+   is always as wide as its bold form and nothing moves when the selection changes. */
+.navbar a[class*="plate-"], .tabs a, .periods a {
+  background: linear-gradient(var(--plate), var(--plate)) no-repeat center bottom / 0 2px;
+  background-origin: border-box;
+  transition: color 0.2s, background-size 0.25s ease;
+}
+.navbar a[class*="plate-"]:hover, .tabs a:hover, .periods a:hover,
+.navbar a[aria-current], .tabs a[aria-current], .periods a[aria-current] { color: var(--chalk); background-size: 100% 2px; }
+.navbar a[aria-current], .tabs a[aria-current], .periods a[aria-current] { font-weight: 600; animation: underline-in 0.35s ease-out; }
+@keyframes underline-in { from { background-size: 0 2px; } }
+
+.lbl { display: inline-flex; flex-direction: column; align-items: center; }
+.lbl::after { content: attr(data-text); height: 0; overflow: hidden; visibility: hidden; font-weight: 600; pointer-events: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .navbar a, .tabs a, .periods a { transition: none; animation: none; }
+}
 
 /* ---------- statistics ---------- */
 

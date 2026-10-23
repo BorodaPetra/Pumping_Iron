@@ -6,7 +6,7 @@
   <title>{% block title %}Pumping Iron{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
   <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
   {# Not deferred: the theme must be set before the first paint, otherwise the page flashes dark. #}
   <script src="{{ url_for('static', path='theme.js') }}"></script>
@@ -15,7 +15,7 @@
   <nav class="navbar" aria-label="Разделы">
     <a class="brand" href="/">Pumping Iron</a>
     {% for item in nav %}
-      <a href="{{ item.path }}" class="plate-{{ item.plate }}"{% if current == item.path or current.startswith(item.path ~ '/') %} aria-current="page"{% endif %}>{{ icon(item.icon) }}{{ item.title }}</a>
+      <a href="{{ item.path }}" class="plate-{{ item.plate }}"{% if current == item.path or current.startswith(item.path ~ '/') %} aria-current="page"{% endif %}>{{ icon(item.icon) }}<span class="lbl" data-text="{{ item.title }}">{{ item.title }}</span></a>
     {% endfor %}
     <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Переключить светлую и тёмную тему" title="Светлая / тёмная тема">{{ icon('contrast') }}</button>
   </nav>

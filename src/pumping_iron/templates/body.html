@@ -18,7 +18,7 @@
 <nav class="periods" aria-label="Период сравнения">
   <span class="muted">{{ icon('calendar') }} Изменение за:</span>
   {% for days, label in periods %}
-    <a href="/body?period={{ days }}"{% if days == period %} aria-current="true"{% endif %}>{{ label }}</a>
+    <a href="/body?period={{ days }}"{% if days == period %} aria-current="true"{% endif %}><span class="lbl" data-text="{{ label }}">{{ label }}</span></a>
   {% endfor %}
 </nav>
 

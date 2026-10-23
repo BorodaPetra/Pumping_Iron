@@ -12,7 +12,7 @@
 <nav class="periods" aria-label="Период">
   <span class="muted">{{ icon('calendar') }} Период:</span>
   {% for days, label in periods %}
-    <a href="/stats?period={{ days }}{% if progress.selected %}&exercise_id={{ progress.selected.id }}{% endif %}"{% if days == period %} aria-current="true"{% endif %}>{{ label }}</a>
+    <a href="/stats?period={{ days }}{% if progress.selected %}&exercise_id={{ progress.selected.id }}{% endif %}"{% if days == period %} aria-current="true"{% endif %}><span class="lbl" data-text="{{ label }}">{{ label }}</span></a>
   {% endfor %}
 </nav>
 
