@@ -11,7 +11,7 @@ from pumping_iron.body import router as body_router
 from pumping_iron.db import init_db
 from pumping_iron.nutrition import router as nutrition_router
 from pumping_iron.photos import router as photos_router
-from pumping_iron.quotes import quote_of_the_day
+from pumping_iron.quotes import QUOTES, quote_of_the_day
 from pumping_iron.web import BASE_DIR, PAGES, page
 from pumping_iron.workouts import router as workouts_router
 
@@ -41,9 +41,13 @@ def render(template: str, plate: str | None = None):
     return handler
 
 
-async def index(request: Request) -> HTMLResponse:
-    """Home page: the barbell plus the quote of the day."""
-    return page(request, "index.html", quote=quote_of_the_day())
+async def index(request: Request, shift: int = 0) -> HTMLResponse:
+    """Home page: the barbell plus the quote of the day.
+
+    `shift` (query) is how many quotes past today's the visitor has stepped with the "next" button.
+    """
+    return page(request, "index.html", quote=quote_of_the_day(shift=shift),
+                next_shift=(shift + 1) % len(QUOTES))
 
 
 app.add_api_route("/", index, response_class=HTMLResponse)

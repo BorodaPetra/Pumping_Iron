@@ -342,6 +342,11 @@ input:focus-visible, select:focus-visible { outline: 3px solid var(--plate, var(
 .btn { background: var(--plate); color: var(--on); }
 .btn-quiet { background: transparent; color: var(--muted); }
 .btn-quiet:hover { color: var(--chalk); }
+a.btn-quiet { text-decoration: none; }
+
+/* "next quote" link under the quote, outlined so it reads as a button */
+.quote-next { margin-top: 1.5rem; border: 1px solid var(--steel-light); }
+.quote-next:hover { border-color: var(--plate); }
 .btn:focus-visible, .btn-quiet:focus-visible { outline: 3px solid var(--chalk); outline-offset: 2px; }
 
 .tabs { display: flex; gap: 1.5rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--steel-light); }

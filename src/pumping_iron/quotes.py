@@ -1,11 +1,10 @@
 """Quote of the day for the home page.
 
-`quotes.txt` holds 365 quotes, one per line: kind|author|source|russian|original|original_lang.
-Kind `s` is a thought from the Stoics and other sages, `d` is a push from the gym world. Quotes
-that were not written in Russian keep their text in the original language next to the translation;
-the aphorisms by Claude have no original. At load time each kind is shuffled with a fixed seed and
-the kinds are interleaved evenly, so the day of the year picks the same quote on every run and
-the authors do not come in long runs.
+`quotes.txt` holds 365 quotes, one per line: kind|author|source|russian|english.
+Kind `s` is a thought from the Stoics and other sages, `d` is a push from the gym world. Every
+quote has an English and a Russian text; other languages are not shown. At load time each kind is
+shuffled with a fixed seed and the kinds are interleaved evenly, so the day of the year picks the
+same quote on every run and the authors do not come in long runs.
 """
 
 import random
@@ -15,24 +14,14 @@ from typing import NamedTuple
 
 QUOTES_FILE = Path(__file__).with_name("quotes.txt")
 
-# Names of the original languages, as shown above the untranslated text.
-LANG_NAMES = {"en": "Английский текст", "de": "Немецкий текст", "la": "Латинский текст"}
-
-
 class Quote(NamedTuple):
-    """One line of quotes.txt. `original` and `lang` are empty for Russian-only quotes."""
+    """One line of quotes.txt."""
 
     kind: str
     author: str
     source: str
     ru: str
-    original: str
-    lang: str
-
-    @property
-    def lang_name(self) -> str:
-        """Label for the original-language block."""
-        return LANG_NAMES.get(self.lang, "Оригинал")
+    en: str
 
 
 def _load() -> list[Quote]:
@@ -55,10 +44,11 @@ def _interleave(quotes: list[Quote]) -> list[Quote]:
 QUOTES = _interleave(_load())
 
 
-def quote_of_the_day(today: date | None = None) -> Quote:
+def quote_of_the_day(today: date | None = None, shift: int = 0) -> Quote:
     """Return the quote for `today` (default: the current date), picked by the day of the year.
 
-    In a leap year day 366 wraps around to the first quote.
+    `shift` moves forward through the list (the "next quote" button); it wraps around, as does
+    day 366 of a leap year.
     """
     day = (today or date.today()).timetuple().tm_yday
-    return QUOTES[(day - 1) % len(QUOTES)]
+    return QUOTES[(day - 1 + shift) % len(QUOTES)]

@@ -33,15 +33,19 @@
 </figure>
 {% endmacro %}
 {% set wisdom = quote.kind == "s" %}
-<section class="quotes plate-{{ 'white' if wisdom else 'red' }}" aria-label="Цитата дня">
+<section id="quote" class="quotes plate-{{ 'white' if wisdom else 'red' }}" aria-label="Цитата дня">
   <h2>{{ icon("column" if wisdom else "flame") }} {{ "Мысль дня" if wisdom else "Заряд дня" }}</h2>
   <div class="quote-pair">
-    {% if quote.original %}
-      {{ block(quote.original, quote.lang_name, quote.author ~ ", " ~ quote.source, quote.lang) }}
-      {{ block(quote.ru, "Русский перевод", "перевод Claude", "ru") }}
+    {# The aphorisms by Claude are written in Russian, so there the Russian block carries the author. #}
+    {% if quote.author == "Claude" %}
+      {{ block(quote.en, "English", "Claude, перевод на английский", "en") }}
+      {{ block(quote.ru, "Русский", quote.author ~ ", " ~ quote.source, "ru") }}
     {% else %}
-      {{ block(quote.ru, "", quote.author ~ ", " ~ quote.source, "ru") }}
+      {{ block(quote.en, "English", quote.author ~ ", " ~ quote.source, "en") }}
+      {{ block(quote.ru, "Русский перевод", "перевод Claude", "ru") }}
     {% endif %}
   </div>
+  {# A plain link: the next quote is chosen on the server, no script needed. #}
+  <a class="btn-quiet quote-next" href="/?shift={{ next_shift }}#quote">Следующая цитата {{ icon("arrow-right") }}</a>
 </section>
 {% endblock %}

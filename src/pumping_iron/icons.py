@@ -23,6 +23,7 @@ ICONS = {
     "column": '<path d="M4 20h16M6 20V9M10 20V9M14 20V9M18 20V9M3 9h18L12 4z"/>',
     "flame": '<path d="M12 3c1 4 5 5 5 10a5 5 0 01-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-5 1-9z"/>',
     "info": '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/>',
+    "arrow-right": '<path d="M5 12h14M13 6l6 6-6 6"/>',
 }
 
 
