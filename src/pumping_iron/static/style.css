@@ -117,6 +117,13 @@ main p { max-width: 60ch; color: var(--muted); }
   mix-blend-mode: multiply;
 }
 
+/* the photo fades in first and the quote follows while it is still coming up (see the quote timings below) */
+@media (prefers-reduced-motion: no-preference) {
+  .hero-photo { animation: photo-in 1.4s ease-out backwards; }
+}
+
+@keyframes photo-in { from { opacity: 0; } }
+
 /* ---------- home: quotes ---------- */
 
 .quotes {
@@ -153,7 +160,7 @@ main p { max-width: 60ch; color: var(--muted); }
 .quote figcaption { color: var(--muted); font-size: 0.9rem; }
 .quote figcaption strong { color: var(--chalk); }
 
-/* after the page is shown: the rule grows, the words come in one by one, then the author */
+/* while the photo fades in: the rule grows, the words come in one by one, then the author */
 @media (prefers-reduced-motion: no-preference) {
   .quote::before { animation: quote-rule 0.6s ease-out 0.8s backwards; }
   .quotes > h2, .quote-label { animation: quote-word 0.5s ease-out 0.8s backwards; }
