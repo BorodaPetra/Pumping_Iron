@@ -1,0 +1,18 @@
+﻿# Python / uv
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Local data
+*.db
+*.sqlite3
+.env
+
+# Working docs (not committed)
+api-endpoints.md
+
+# Tooling
+.remember/
+.claude/
