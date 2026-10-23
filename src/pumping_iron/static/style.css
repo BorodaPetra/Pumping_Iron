@@ -493,15 +493,6 @@ main.plate-blue { max-width: 80rem; }
   .body-layout .history h2 { margin-top: 0; }
 }
 
-/* Nutrition diary: the day on the left, the last days beside it; both nutrition tabs share the wide main. */
-main.plate-orange { max-width: 80rem; }
-@media (min-width: 70rem) {
-  .log-layout { display: grid; grid-template-columns: minmax(0, 1fr) 26rem; gap: 3rem; align-items: start; }
-  .log-layout .item-name { flex-basis: 8rem; } /* keep name, nutrients and the remove button on one line in the narrower column */
-  .log-layout .history { margin-top: 0; }
-  .log-layout .history h2 { margin-top: 0; }
-}
-
 /* what the server changed (or failed to do) during a reply, shown apart from the model's text */
 .notice {
   margin: 0.4rem 0;

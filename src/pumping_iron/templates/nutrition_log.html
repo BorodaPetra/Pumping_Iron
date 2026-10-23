@@ -5,9 +5,6 @@
 <h1 class="sr-only">Питание</h1>
 {{ nutrition_tabs(current) }}
 
-{# Two columns on a wide screen: the chosen day on the left, the table of the last days beside it. #}
-<div class="log-layout">
-<div class="log-day-col">
 <div class="day-nav">
   <a href="/nutrition/log?day={{ prev_day }}" aria-label="Предыдущий день">←</a>
   <h2>{{ label }}</h2>
@@ -70,25 +67,4 @@
     </div>
   </section>
 {% endfor %}
-</div>
-
-<section class="history">
-  <h2>Последние дни</h2>
-  {% if history %}
-    <table>
-      <thead><tr><th scope="col">День</th><th scope="col">ккал</th><th scope="col">Белки, г</th><th scope="col">Жиры, г</th><th scope="col">Углеводы, г</th></tr></thead>
-      <tbody>
-        {% for h in history %}
-          <tr>
-            <th scope="row"><a href="/nutrition/log?day={{ h.day }}">{{ h.label }}</a></th>
-            <td>{{ h.row.kcal }}</td><td>{{ '%g'|format(h.row.protein_g) }}</td><td>{{ '%g'|format(h.row.fat_g) }}</td><td>{{ '%g'|format(h.row.carbs_g) }}</td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  {% else %}
-    <p>Записей пока нет.</p>
-  {% endif %}
-</section>
-</div>
 {% endblock %}

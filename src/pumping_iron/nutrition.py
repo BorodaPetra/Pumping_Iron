@@ -81,7 +81,7 @@ def add_item(db: Db, meal: Annotated[Meal, Form()], food: Food, grams: Grams, kc
 
 @router.get("/log", response_class=HTMLResponse)
 def log_page(request: Request, db: Db, day: date | None = None) -> HTMLResponse:
-    """Show the diary for one day (default today) against the plan, with a 14-day history.
+    """Show the diary for one day (default today) against the plan.
 
     The plan items are listed as one-click buttons ("eaten as planned").
     """
@@ -91,16 +91,11 @@ def log_page(request: Request, db: Db, day: date | None = None) -> HTMLResponse:
         db.execute("SELECT * FROM food_log WHERE eaten_on = ? ORDER BY id", (iso,)).fetchall()
     )
     plan_meals, planned = build_diet(db)
-    history = db.execute(
-        """SELECT eaten_on, SUM(kcal) AS kcal, SUM(protein_g) AS protein_g, SUM(fat_g) AS fat_g, SUM(carbs_g) AS carbs_g
-           FROM food_log GROUP BY eaten_on ORDER BY eaten_on DESC LIMIT 14"""
-    ).fetchall()
     return page(
         request, "nutrition_log.html", "orange",
         day=iso, label=day_label(day), prev_day=(day - timedelta(days=1)).isoformat(),
         next_day=(day + timedelta(days=1)).isoformat(), meals=meals, eaten=eaten, planned=planned,
         plan_by_meal={m["meal"]: m["items"] for m in plan_meals},
-        history=[{"label": day_label(date.fromisoformat(r["eaten_on"])), "day": r["eaten_on"], "row": r} for r in history],
     )
 
 
