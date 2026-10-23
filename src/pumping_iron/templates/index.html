@@ -27,7 +27,8 @@
       {{ block(quote.ru, "Русский перевод", "перевод " ~ quote.ru_by, "ru") }}
     {% endif %}
   </div>
-  {# A plain link: the server picks the random quote for the next click, no script needed. #}
+  {# A plain link: the server picks the random quote for the next click; quotes.js swaps the section without reloading the photo. #}
   <a class="btn-quiet quote-next" href="/?shift={{ next_shift }}#quote">Другая цитата {{ icon("shuffle") }}</a>
 </section>
+<script src="{{ url_for('static', path='quotes.js') }}" defer></script>
 {% endblock %}
