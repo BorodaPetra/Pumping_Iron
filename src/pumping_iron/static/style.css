@@ -13,6 +13,8 @@
   --green: #26794a;
   --white: #ece9e2;
   --orange: #d9722b;
+  --good: #6fcf97;  /* readable on the dark background, unlike the plate green */
+  --bad: #f08a80;
 
   --font-display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
   --font-body: "IBM Plex Sans", system-ui, sans-serif;
@@ -376,3 +378,71 @@ input:focus-visible, select:focus-visible { outline: 3px solid var(--plate, var(
 }
 
 .notice-error { border-left-color: var(--red); color: var(--muted); }
+
+/* ---------- body: measurements, figure, photos ---------- */
+
+.pct { white-space: nowrap; }
+.tone-good { color: var(--good); }
+.tone-bad { color: var(--bad); }
+.tone-flat { color: var(--muted); }
+
+.periods { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 1rem; margin-bottom: 1.25rem; }
+.periods a { color: var(--muted); text-decoration: none; padding: 0.2rem 0; border-bottom: 2px solid transparent; }
+.periods a:hover, .periods a[aria-current] { color: var(--chalk); }
+.periods a[aria-current] { border-bottom-color: var(--plate); }
+
+.tiles { display: flex; flex-wrap: wrap; gap: 2rem; margin-bottom: 0.5rem; }
+.tile { display: flex; flex-direction: column; }
+.tile strong { font: 700 1.6rem var(--font-display); }
+
+/* The figure is a square box. The body takes its middle 40 %; labels sit in the side
+   columns at the same percentages that body.py uses for the leader lines. */
+.body-figure { position: relative; width: 100%; max-width: 36rem; aspect-ratio: 1; margin: 1.5rem auto 0.5rem; }
+.fig-body { position: absolute; left: 30%; top: 0; width: 40%; height: 100%; fill: var(--steel-light); }
+.fig-lines { position: absolute; inset: 0; width: 100%; height: 100%; }
+.fig-lines line { stroke: var(--muted); stroke-width: 1; }
+.fig-lines circle { fill: var(--plate); }
+
+.fig-label {
+  position: absolute;
+  width: 26%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  font-size: 0.8rem;
+  line-height: 1.25;
+}
+
+.fig-left { left: 0; text-align: right; }
+.fig-right { right: 0; text-align: left; }
+.fig-name { color: var(--muted); }
+.fig-value { font-weight: 600; }
+.fig-note { text-align: center; max-width: 36rem; margin: 0 auto 2rem; }
+
+.measure-form { margin-top: 0.75rem; }
+.measure-date { display: block; margin-bottom: 1rem; }
+.measure-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr)); gap: 0.75rem 1rem; margin-bottom: 1rem; }
+.measure-grid label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.9rem; color: var(--muted); }
+.measure-grid input { width: 100%; color: var(--chalk); }
+
+.photo-form { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-top: 0.75rem; }
+.photo-day h2 { margin: 1.75rem 0 0.5rem; font-size: 1.25rem; }
+.gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: 1rem; }
+.gallery figure { margin: 0; }
+.gallery img { display: block; width: 100%; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 0.4rem; background: var(--steel-deep); }
+.gallery figcaption { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--muted); }
+
+.reminder {
+  padding: 0.6rem 1.5rem;
+  background: var(--yellow);
+  color: var(--steel-deep);
+  font-weight: 500;
+}
+
+.reminder a { color: inherit; font-weight: 700; }
+.reminder a:focus-visible { outline-color: var(--steel-deep); }
+
+@media (max-width: 40rem) {
+  .fig-label { width: 29%; font-size: 0.7rem; }
+  .fig-value { white-space: nowrap; }
+}

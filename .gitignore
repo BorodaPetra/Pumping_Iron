@@ -17,3 +17,6 @@ api-endpoints.md
 .remember/
 .claude/
 .playwright-mcp/
+
+# Personal data: database and progress photos
+data/

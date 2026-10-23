@@ -30,3 +30,7 @@
 {% macro nutrition_tabs(current) %}
 {{ section_tabs([('/nutrition', 'Рацион'), ('/nutrition/log', 'Дневник')], current) }}
 {% endmacro %}
+
+{% macro body_tabs(current) %}
+{{ section_tabs([('/body', 'Замеры'), ('/body/photos', 'Фото')], current) }}
+{% endmacro %}

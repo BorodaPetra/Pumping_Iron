@@ -8,6 +8,9 @@ Tables:
   log_entries    the training journal: one row per performed set
   diet_items     the daily meal plan: foods per meal with calories and macros
   food_log       what was actually eaten, per date (nutrition monitoring)
+  measure_types  reference list of body measurements (girths in cm, weight, body fat %)
+  measurements   measured values per date and type, for the body block's dynamics
+  photos         progress photos: metadata here, the image files in `data/photos/`
 
 The database file path comes from env PUMPING_IRON_DB, default `data/pumping_iron.db`
 in the project root (ignored by git).
@@ -71,6 +74,32 @@ CREATE TABLE IF NOT EXISTS food_log (
     carbs_g   REAL NOT NULL CHECK (carbs_g >= 0)
 );
 CREATE INDEX IF NOT EXISTS idx_food_log_date ON food_log(eaten_on);
+CREATE TABLE IF NOT EXISTS measure_types (
+    id      INTEGER PRIMARY KEY,
+    key     TEXT NOT NULL UNIQUE,        -- stable slug used by the body figure and the input form
+    name    TEXT NOT NULL UNIQUE,
+    kind    TEXT NOT NULL CHECK (kind IN ('girth', 'weight', 'fat_pct')),
+    unit    TEXT NOT NULL,
+    min_val REAL NOT NULL,               -- plausible range, rejects typos like 3.8 instead of 38
+    max_val REAL NOT NULL,
+    better  TEXT NOT NULL CHECK (better IN ('up', 'down', 'none'))  -- which change is an improvement
+);
+CREATE TABLE IF NOT EXISTS measurements (
+    id          INTEGER PRIMARY KEY,
+    measured_on TEXT NOT NULL,           -- ISO date, YYYY-MM-DD
+    type_id     INTEGER NOT NULL REFERENCES measure_types(id),
+    value       REAL NOT NULL CHECK (value > 0),
+    UNIQUE (measured_on, type_id)        -- one value per type and day; re-entering overwrites
+);
+CREATE INDEX IF NOT EXISTS idx_measurements_type_date ON measurements(type_id, measured_on);
+CREATE TABLE IF NOT EXISTS photos (
+    id       INTEGER PRIMARY KEY,
+    taken_on TEXT NOT NULL,              -- ISO date, YYYY-MM-DD
+    pose     TEXT NOT NULL CHECK (pose IN ('Спереди', 'Сбоку', 'Сзади', 'Другое')),
+    filename TEXT NOT NULL UNIQUE,       -- generated name inside data/photos, never the uploaded one
+    note     TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX IF NOT EXISTS idx_photos_date ON photos(taken_on);
 CREATE INDEX IF NOT EXISTS idx_log_entries_date ON log_entries(performed_on);
 CREATE INDEX IF NOT EXISTS idx_program_items_weekday ON program_items(weekday);
 """
@@ -106,6 +135,26 @@ SEED_EXERCISES = [
 ]
 
 
+# (key, name, kind, unit, min, max, better). Girths are in cm, weight in kg, body fat in %.
+SEED_MEASURE_TYPES = [
+    ("neck", "Шея", "girth", "см", 25, 60, "up"),
+    ("shoulders", "Плечи", "girth", "см", 80, 200, "up"),
+    ("chest", "Грудь", "girth", "см", 60, 200, "up"),
+    ("waist", "Талия", "girth", "см", 40, 200, "down"),
+    ("hips", "Бёдра", "girth", "см", 60, 200, "none"),
+    ("biceps_l", "Бицепс левый", "girth", "см", 15, 70, "up"),
+    ("biceps_r", "Бицепс правый", "girth", "см", 15, 70, "up"),
+    ("forearm_l", "Предплечье левое", "girth", "см", 15, 50, "up"),
+    ("forearm_r", "Предплечье правое", "girth", "см", 15, 50, "up"),
+    ("thigh_l", "Бедро левое", "girth", "см", 30, 100, "up"),
+    ("thigh_r", "Бедро правое", "girth", "см", 30, 100, "up"),
+    ("calf_l", "Голень левая", "girth", "см", 20, 70, "up"),
+    ("calf_r", "Голень правая", "girth", "см", 20, 70, "up"),
+    ("weight", "Вес", "weight", "кг", 30, 300, "none"),
+    ("fat", "Жир", "fat_pct", "%", 3, 60, "down"),
+]
+
+
 def connect() -> sqlite3.Connection:
     """Open a connection with rows addressable by column name and foreign keys enforced.
 
@@ -118,30 +167,43 @@ def connect() -> sqlite3.Connection:
     return conn
 
 
+def seed_training(conn: sqlite3.Connection) -> None:
+    """Fill the muscle groups, antagonist pairs and exercise library on an empty database."""
+    conn.executemany("INSERT INTO muscle_groups (name, movement) VALUES (?, ?)", SEED_GROUPS)
+    for a, b in SEED_ANTAGONISTS:
+        conn.execute(
+            "UPDATE muscle_groups SET antagonist_id = (SELECT id FROM muscle_groups WHERE name = ?) WHERE name = ?",
+            (b, a),
+        )
+        conn.execute(
+            "UPDATE muscle_groups SET antagonist_id = (SELECT id FROM muscle_groups WHERE name = ?) WHERE name = ?",
+            (a, b),
+        )
+    conn.executemany(
+        "INSERT INTO exercises (name, muscle_group_id) "
+        "VALUES (?, (SELECT id FROM muscle_groups WHERE name = ?))",
+        SEED_EXERCISES,
+    )
+
+
 def init_db() -> None:
-    """Create the tables if missing and fill the muscle groups and exercise library once."""
+    """Create the tables if missing and seed each reference table once.
+
+    Every seed has its own emptiness check, so tables added later (like measure_types)
+    are filled in databases that already exist.
+    """
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = connect()
     try:
         with conn:
             conn.executescript(SCHEMA)
-            if conn.execute("SELECT 1 FROM muscle_groups LIMIT 1").fetchone():
-                return  # already seeded
-            conn.executemany("INSERT INTO muscle_groups (name, movement) VALUES (?, ?)", SEED_GROUPS)
-            for a, b in SEED_ANTAGONISTS:
-                conn.execute(
-                    "UPDATE muscle_groups SET antagonist_id = (SELECT id FROM muscle_groups WHERE name = ?) WHERE name = ?",
-                    (b, a),
+            if not conn.execute("SELECT 1 FROM muscle_groups LIMIT 1").fetchone():
+                seed_training(conn)
+            if not conn.execute("SELECT 1 FROM measure_types LIMIT 1").fetchone():
+                conn.executemany(
+                    "INSERT INTO measure_types (key, name, kind, unit, min_val, max_val, better) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    SEED_MEASURE_TYPES,
                 )
-                conn.execute(
-                    "UPDATE muscle_groups SET antagonist_id = (SELECT id FROM muscle_groups WHERE name = ?) WHERE name = ?",
-                    (a, b),
-                )
-            conn.executemany(
-                "INSERT INTO exercises (name, muscle_group_id) "
-                "VALUES (?, (SELECT id FROM muscle_groups WHERE name = ?))",
-                SEED_EXERCISES,
-            )
     finally:
         conn.close()
 

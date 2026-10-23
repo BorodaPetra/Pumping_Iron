@@ -13,7 +13,7 @@ BASE_DIR = Path(__file__).parent
 # to a `.plate-<name>` class in style.css.
 PAGES = [
     ("/workouts", None, "Тренировки", "red"),
-    ("/body", "body.html", "Показатели", "blue"),
+    ("/body", None, "Показатели", "blue"),
     ("/assistant", "assistant.html", "АИ тренер", "yellow"),
     ("/meditation", "meditation.html", "Медитации", "green"),
     ("/stats", "stats.html", "Статистика", "white"),

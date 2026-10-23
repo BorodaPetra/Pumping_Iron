@@ -7,8 +7,10 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from pumping_iron.assistant import router as assistant_router
+from pumping_iron.body import router as body_router
 from pumping_iron.db import init_db
 from pumping_iron.nutrition import router as nutrition_router
+from pumping_iron.photos import router as photos_router
 from pumping_iron.web import BASE_DIR, PAGES, page
 from pumping_iron.workouts import router as workouts_router
 
@@ -23,6 +25,8 @@ async def lifespan(_: FastAPI):
 app = FastAPI(title="Pumping Iron", lifespan=lifespan)
 app.include_router(assistant_router)
 app.include_router(workouts_router)
+app.include_router(body_router)
+app.include_router(photos_router)
 app.include_router(nutrition_router)
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 
