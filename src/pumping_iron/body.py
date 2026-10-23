@@ -1,5 +1,8 @@
 """Block 2: body measurements, their dynamics and the labelled human figure.
 
+The figure is the front-view muscle map from body_figure.py: every measured body part
+colours its region (green = changed in the wanted direction, red = the opposite).
+
   GET  /body           figure with the latest value and the change in percent next to
                        every measured body part, weight and body fat, and a full table
   POST /body/measure   save one or more measurements for a date (re-entering overwrites)
@@ -16,6 +19,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
+from pumping_iron.body_figure import POLYGONS
 from pumping_iron.db import get_db
 from pumping_iron.web import page
 
@@ -27,27 +31,60 @@ Db = Annotated[sqlite3.Connection, Depends(get_db)]
 PERIODS = [(30, "30 дней"), (90, "90 дней"), (365, "Год"), (0, "Всё время")]
 DEFAULT_PERIOD = 90
 
-# Where each girth sits on the figure. The figure is a square box; the body drawing
-# occupies its middle 40 % (x from 30 % to 70 %), the SVG body is 200 x 500 units.
-# key: (column, label_y %, dot_x units, dot_y units, short label).
-# Label rows are at least 13 % apart so two-line labels never overlap, and the order
-# along each column follows the body from top to bottom so leader lines do not cross.
-# The left column is the person's right side (the figure faces the viewer).
+# The figure box: the body drawing (SVG viewBox 1000 x 1980, polygons from body_figure.py)
+# fills the middle part of it, the labels sit in the side columns. These numbers are shared
+# with style.css (.body-figure and .fig-body use the same proportions).
+FIG_W, FIG_H = 1000, 1980
+BODY_LEFT, BODY_WIDTH = 28.3, 43.4                  # % of the box width
+BOX_RATIO = BODY_WIDTH / 100 * FIG_H / FIG_W        # box height / box width, 0.8593
+LABEL_EDGE = {"left": 28, "right": 72}              # x (%) where a leader line leaves the label column
+
+# key: (muscle regions it colours, side, label column, label y %, short label).
+# side: "r" / "l" = the person's right / left (the figure faces the viewer, so "r" is on the
+# viewer's left), None = both sides as one region. Label rows are at least 13 % apart so
+# two-line labels never overlap, and the order along each column follows the body from top
+# to bottom so leader lines do not cross. The left column holds the person's right side.
 FIGURE = {
-    "neck":      ("left", 6, 100, 72, "Шея"),
-    "shoulders": ("left", 19, 58, 102, "Плечи"),
-    "biceps_r":  ("left", 32, 39, 150, "Бицепс П"),
-    "forearm_r": ("left", 47, 31, 240, "Предплечье П"),
-    "hips":      ("left", 60, 68, 272, "Бёдра"),
-    "thigh_r":   ("left", 73, 78, 330, "Бедро П"),
-    "calf_r":    ("left", 90, 78, 445, "Голень П"),
-    "chest":     ("right", 14, 124, 140, "Грудь"),
-    "biceps_l":  ("right", 28, 161, 150, "Бицепс Л"),
-    "waist":     ("right", 43, 130, 215, "Талия"),
-    "forearm_l": ("right", 57, 169, 240, "Предплечье Л"),
-    "thigh_l":   ("right", 72, 122, 330, "Бедро Л"),
-    "calf_l":    ("right", 90, 122, 445, "Голень Л"),
+    "neck":      (("NECK",), None, "left", 8, "Шея"),
+    "shoulders": (("FRONT_DELTOIDS",), None, "left", 21, "Плечи"),
+    "biceps_r":  (("BICEPS",), "r", "left", 34, "Бицепс П"),
+    "forearm_r": (("FOREARM",), "r", "left", 47, "Предплечье П"),
+    "hips":      (("ABDUCTORS",), None, "left", 60, "Бёдра"),
+    "thigh_r":   (("QUADRICEPS",), "r", "left", 73, "Бедро П"),
+    "calf_r":    (("CALVES",), "r", "left", 90, "Голень П"),
+    "chest":     (("CHEST",), None, "right", 14, "Грудь"),
+    "biceps_l":  (("BICEPS",), "l", "right", 28, "Бицепс Л"),
+    "waist":     (("ABS", "OBLIQUES"), None, "right", 42, "Талия"),
+    "forearm_l": (("FOREARM",), "l", "right", 56, "Предплечье Л"),
+    "thigh_l":   (("QUADRICEPS",), "l", "right", 72, "Бедро Л"),
+    "calf_l":    (("CALVES",), "l", "right", 90, "Голень Л"),
 }
+
+
+def _centroid(points: str) -> tuple[float, float]:
+    """Return the mean of the vertices of an SVG `points` string like "x1 y1 x2 y2 ..."."""
+    numbers = [int(n) for n in points.split()]
+    xs, ys = numbers[0::2], numbers[1::2]
+    return sum(xs) / len(xs), sum(ys) / len(ys)
+
+
+def _region(muscles: tuple[str, ...], side: str | None) -> tuple[list[str], tuple[float, float]]:
+    """Return (polygons, centre) of a body region given its muscle names and side.
+
+    A polygon belongs to the person's right side when its centre is left of the middle of
+    the drawing (x < 500). The centre is where the label's leader line ends.
+    """
+    polygons = [
+        points for muscle in muscles for points in POLYGONS[muscle]
+        if side is None or (side == "r") == (_centroid(points)[0] < FIG_W / 2)
+    ]
+    centres = [_centroid(points) for points in polygons]
+    return polygons, (sum(x for x, _ in centres) / len(centres), sum(y for _, y in centres) / len(centres))
+
+
+REGIONS = {key: _region(muscles, side) for key, (muscles, side, *_rest) in FIGURE.items()}
+# Computed once at import: the whole neutral body drawing does not depend on the data.
+BASE_POLYGONS = [points for polygons in POLYGONS.values() for points in polygons]
 
 
 def summarize(series: list[tuple[str, float]], period: int, better: str) -> dict:
@@ -91,14 +128,18 @@ def body_page(request: Request, db: Db, period: int = DEFAULT_PERIOD) -> HTMLRes
     types, summaries = load_summaries(db, period)
     labels = [
         {
-            "side": side, "top": label_y, "name": short,
-            "dot_x": 30 + dot_x * 0.2, "dot_y": dot_y / 5,  # units -> % of the figure box
+            "side": column, "top": label_y, "name": short, "edge": LABEL_EDGE[column],
+            "dot_x": BODY_LEFT + BODY_WIDTH * REGIONS[key][1][0] / FIG_W,  # % of the box width
+            "dot_y": REGIONS[key][1][1] / FIG_H * 100,                     # % of the box height
             "info": summaries.get(key),
         }
-        for key, (side, label_y, dot_x, dot_y, short) in FIGURE.items()
+        for key, (_muscles, _side, column, label_y, short) in FIGURE.items()
     ]
+    # Every polygon is drawn neutral first; the measured regions are painted over it by tone.
+    overlays = [{"tone": summaries[key]["tone"], "polygons": REGIONS[key][0]} for key in FIGURE if key in summaries]
     return page(
         request, "body.html", "blue", types=types, summaries=summaries, labels=labels,
+        base=BASE_POLYGONS, overlays=overlays, ratio=BOX_RATIO,
         period=period, periods=PERIODS, today=date.today().isoformat(),
         tiles=[(t, summaries.get(t["key"])) for t in types if t["kind"] != "girth"],
     )

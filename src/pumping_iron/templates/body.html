@@ -26,27 +26,19 @@
   {% endfor %}
 </div>
 
-{# Square box: the body is drawn in its middle 40 %, labels sit in the side columns, leader lines go to the dots. #}
+{# Box with the muscle map (front view) in the middle and labels in the side columns; leader lines run in
+   a 100 x (100 * ratio) coordinate system so one unit is the same length on both axes and the dots stay round. #}
 <figure class="body-figure">
-  <svg class="fig-body" viewBox="0 0 200 500" role="img" aria-label="Фигура человека">
-    <g>
-      <circle cx="100" cy="38" r="26"/>
-      <rect x="90" y="60" width="20" height="22" rx="6"/>
-      <path d="M58 100 Q100 84 142 100 L150 215 Q148 250 138 262 L62 262 Q52 250 50 215 Z"/>
-      <rect x="26" y="102" width="26" height="92" rx="12"/>
-      <rect x="20" y="198" width="22" height="84" rx="10"/>
-      <rect x="148" y="102" width="26" height="92" rx="12"/>
-      <rect x="158" y="198" width="22" height="84" rx="10"/>
-      <rect x="58" y="262" width="40" height="130" rx="16"/>
-      <rect x="62" y="396" width="32" height="92" rx="14"/>
-      <rect x="102" y="262" width="40" height="130" rx="16"/>
-      <rect x="106" y="396" width="32" height="92" rx="14"/>
-    </g>
+  <svg class="fig-body" viewBox="0 0 1000 1980" role="img" aria-label="Фигура человека, вид спереди">
+    {% for points in base %}<polygon points="{{ points }}"/>{% endfor %}
+    {% for region in overlays %}
+      {% for points in region.polygons %}<polygon class="reg-{{ region.tone }}" points="{{ points }}"/>{% endfor %}
+    {% endfor %}
   </svg>
-  <svg class="fig-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+  <svg class="fig-lines" viewBox="0 0 100 {{ '%.2f'|format(100 * ratio) }}" aria-hidden="true">
     {% for l in labels %}
-      <line x1="{{ 27 if l.side == 'left' else 73 }}" y1="{{ l.top }}" x2="{{ '%.1f'|format(l.dot_x) }}" y2="{{ '%.1f'|format(l.dot_y) }}" vector-effect="non-scaling-stroke"/>
-      <circle cx="{{ '%.1f'|format(l.dot_x) }}" cy="{{ '%.1f'|format(l.dot_y) }}" r="1.1"/>
+      <line x1="{{ l.edge }}" y1="{{ '%.2f'|format(l.top * ratio) }}" x2="{{ '%.2f'|format(l.dot_x) }}" y2="{{ '%.2f'|format(l.dot_y * ratio) }}" vector-effect="non-scaling-stroke"/>
+      <circle cx="{{ '%.2f'|format(l.dot_x) }}" cy="{{ '%.2f'|format(l.dot_y * ratio) }}" r="0.9"/>
     {% endfor %}
   </svg>
   {% for l in labels %}
@@ -60,7 +52,7 @@
     </div>
   {% endfor %}
 </figure>
-<p class="muted fig-note">Обхваты в сантиметрах. Л и П: левая и правая сторона человека. В скобках изменение за выбранный период.</p>
+<p class="muted fig-note">Обхваты в сантиметрах. Л и П: левая и правая сторона человека. В скобках изменение за выбранный период. Зелёная зона: сдвиг в нужную сторону, красная: в обратную, серая: без изменений.</p>
 
 <details class="add"{% if not summaries %} open{% endif %}>
   <summary>Внести замеры</summary>

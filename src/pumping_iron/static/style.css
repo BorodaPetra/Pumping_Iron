@@ -395,17 +395,22 @@ input:focus-visible, select:focus-visible { outline: 3px solid var(--plate, var(
 .tile { display: flex; flex-direction: column; }
 .tile strong { font: 700 1.6rem var(--font-display); }
 
-/* The figure is a square box. The body takes its middle 40 %; labels sit in the side
-   columns at the same percentages that body.py uses for the leader lines. */
-.body-figure { position: relative; width: 100%; max-width: 36rem; aspect-ratio: 1; margin: 1.5rem auto 0.5rem; }
-.fig-body { position: absolute; left: 30%; top: 0; width: 40%; height: 100%; fill: var(--steel-light); }
+/* The muscle map takes the middle 43.4 % of the box; labels sit in the side columns at the
+   same percentages that body.py uses for the leader lines (keep BODY_LEFT, BODY_WIDTH and the
+   aspect-ratio below in step with it). */
+.body-figure { position: relative; width: 100%; max-width: 40rem; aspect-ratio: 1 / 0.8593; margin: 1.5rem auto 0.5rem; }
+.fig-body { position: absolute; left: 28.3%; top: 0; width: 43.4%; height: 100%; }
+.fig-body polygon { fill: var(--steel-light); stroke: var(--steel); stroke-width: 4; stroke-linejoin: round; }
+.fig-body .reg-good { fill: var(--good); }
+.fig-body .reg-bad { fill: var(--bad); }
+.fig-body .reg-flat { fill: var(--muted); }
 .fig-lines { position: absolute; inset: 0; width: 100%; height: 100%; }
 .fig-lines line { stroke: var(--muted); stroke-width: 1; }
-.fig-lines circle { fill: var(--plate); }
+.fig-lines circle { fill: var(--chalk); }
 
 .fig-label {
   position: absolute;
-  width: 26%;
+  width: 27%;
   transform: translateY(-50%);
   display: flex;
   flex-direction: column;
@@ -417,7 +422,7 @@ input:focus-visible, select:focus-visible { outline: 3px solid var(--plate, var(
 .fig-right { right: 0; text-align: left; }
 .fig-name { color: var(--muted); }
 .fig-value { font-weight: 600; }
-.fig-note { text-align: center; max-width: 36rem; margin: 0 auto 2rem; }
+.fig-note { text-align: center; max-width: 40rem; margin: 0 auto 2rem; }
 
 .measure-form { margin-top: 0.75rem; }
 .measure-date { display: block; margin-bottom: 1rem; }
