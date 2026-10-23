@@ -199,6 +199,56 @@ main p { max-width: 60ch; color: var(--muted); }
   from { opacity: 0; transform: translateX(var(--from)); }
 }
 
+/* ---------- home: quotes ---------- */
+
+.quotes {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--steel-light);
+}
+
+.quotes > h2 { margin: 0 0 1rem; font-size: 1rem; color: var(--muted); }
+
+/* the original and its translation side by side; a single quote keeps a readable line length */
+.quote-pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  gap: 2rem 3rem;
+}
+
+.quote { position: relative; max-width: 40rem; margin: 0; padding-left: 1.5rem; }
+
+/* the plate-coloured rule left of a quote */
+.quote::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0.35rem;
+  border-radius: 0.2rem;
+  background: var(--plate);
+  transform-origin: top;
+}
+
+.quote-label { margin: 0 0 0.5rem; font-size: 0.85rem; color: var(--muted); }
+.quote blockquote { margin: 0 0 0.75rem; font-size: clamp(1.15rem, 2.4vw, 1.4rem); line-height: 1.4; }
+.quote blockquote span { display: inline-block; }
+.quote figcaption { color: var(--muted); font-size: 0.9rem; }
+.quote figcaption strong { color: var(--chalk); }
+
+/* after the plates are on: the rule grows, the words come in one by one, then the author */
+@media (prefers-reduced-motion: no-preference) {
+  .quote::before { animation: quote-rule 0.6s ease-out 0.8s backwards; }
+  .quotes > h2, .quote-label { animation: quote-word 0.5s ease-out 0.8s backwards; }
+  .quote blockquote span {
+    animation: quote-word 0.45s ease-out backwards;
+    animation-delay: calc(1s + var(--w) * 40ms);
+  }
+  .quote figcaption { animation: quote-word 0.5s ease-out backwards; animation-delay: calc(1.2s + var(--n) * 40ms); }
+}
+
+@keyframes quote-rule { from { transform: scaleY(0); } }
+@keyframes quote-word { from { opacity: 0; transform: translateY(0.5em); } }
+
 /* ---------- assistant chat ---------- */
 
 .chat { display: flex; flex-direction: column; gap: 1rem; }

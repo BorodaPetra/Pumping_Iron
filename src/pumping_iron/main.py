@@ -11,6 +11,7 @@ from pumping_iron.body import router as body_router
 from pumping_iron.db import init_db
 from pumping_iron.nutrition import router as nutrition_router
 from pumping_iron.photos import router as photos_router
+from pumping_iron.quotes import quote_of_the_day
 from pumping_iron.web import BASE_DIR, PAGES, page
 from pumping_iron.workouts import router as workouts_router
 
@@ -40,7 +41,12 @@ def render(template: str, plate: str | None = None):
     return handler
 
 
-app.add_api_route("/", render("index.html"), response_class=HTMLResponse)
+async def index(request: Request) -> HTMLResponse:
+    """Home page: the barbell plus the quote of the day."""
+    return page(request, "index.html", quote=quote_of_the_day())
+
+
+app.add_api_route("/", index, response_class=HTMLResponse)
 for path, template, _, plate in PAGES:
     if template:  # pages with a template None are served by a router
         app.add_api_route(path, render(template, plate), response_class=HTMLResponse)
