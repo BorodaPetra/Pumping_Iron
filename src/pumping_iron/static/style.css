@@ -374,6 +374,10 @@ a.btn-quiet { text-decoration: none; }
 .lib-group ul { margin: 0; padding: 0; list-style: none; }
 .lib-group li { padding: 0.2rem 0; border-bottom: 1px solid var(--steel-light); }
 
+/* Workouts section (red plate): program, journal and library share the wide column of the body pages,
+   so switching tabs does not shift the block. */
+main.plate-red { max-width: 80rem; }
+
 /* ---------- journal ---------- */
 
 .log-form { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 2rem; }
