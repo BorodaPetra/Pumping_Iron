@@ -369,6 +369,7 @@ a.btn-quiet { text-decoration: none; }
 /* up to three columns of groups, filled top to bottom so short groups do not leave gaps; same page width as the other tabs */
 .lib-groups { columns: 3 16rem; column-gap: 2rem; }
 .lib-group { break-inside: avoid; margin-bottom: 1.5rem; }
+.lib-group li small { display: block; color: #7b8187; font-size: 0.85rem; line-height: 1.3; }
 .lib-group h2 { margin: 0 0 0.5rem; font-size: 1.1rem; }
 .lib-group h2 small { color: var(--muted); font-weight: 400; }
 .lib-group ul { margin: 0; padding: 0; list-style: none; }

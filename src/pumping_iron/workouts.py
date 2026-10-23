@@ -32,7 +32,7 @@ Weight = Annotated[float, Form(ge=0, le=1000)]
 def exercise_options(db: sqlite3.Connection) -> dict[str, list[sqlite3.Row]]:
     """Return the exercise library as {muscle group name: [exercise rows]} for <optgroup> selects."""
     rows = db.execute(
-        """SELECT e.id, e.name, g.name AS group_name
+        """SELECT e.id, e.name, e.description, g.name AS group_name
            FROM exercises e JOIN muscle_groups g ON g.id = e.muscle_group_id
            ORDER BY g.id, e.name"""
     ).fetchall()

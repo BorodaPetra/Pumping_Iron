@@ -18,7 +18,7 @@
     <section class="lib-group">
       <h2>{{ group }} <small>{{ exercises|length }}</small></h2>
       <ul>
-        {% for e in exercises %}<li>{{ e.name }}</li>{% endfor %}
+        {% for e in exercises %}<li>{{ e.name }}{% if e.description %}<small>({{ e.description }})</small>{% endif %}</li>{% endfor %}
       </ul>
     </section>
   {% endfor %}
