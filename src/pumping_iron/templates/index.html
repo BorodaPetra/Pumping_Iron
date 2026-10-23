@@ -3,12 +3,22 @@
 <section class="hero">
   <h1>Что на штанге сегодня?</h1>
   <p>Каждый блин ведёт в свой раздел.</p>
+  {# Three plates per side. In the DOM the first plate of a side is the innermost one. #}
   <div class="barbell">
+    <div class="sleeve"></div>
+    <div class="side side-left">
+      {% for item in nav[:3] %}
+        <a class="plate plate-{{ item.plate }}" href="{{ item.path }}" style="--i: {{ loop.index0 }}">{{ item.title }}</a>
+      {% endfor %}
+    </div>
+    <div class="collar"></div>
     <div class="bar"></div>
     <div class="collar"></div>
-    {% for item in nav %}
-      <a class="plate plate-{{ item.plate }}" href="{{ item.path }}" style="--i: {{ loop.index0 }}">{{ item.title }}</a>
-    {% endfor %}
+    <div class="side side-right">
+      {% for item in nav[3:6] %}
+        <a class="plate plate-{{ item.plate }}" href="{{ item.path }}" style="--i: {{ loop.index0 }}">{{ item.title }}</a>
+      {% endfor %}
+    </div>
     <div class="sleeve"></div>
   </div>
 </section>

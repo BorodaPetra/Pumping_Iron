@@ -19,6 +19,7 @@ PAGES = [
     ("/assistant", "assistant.html", "АИ тренер", "yellow"),
     ("/meditation", "meditation.html", "Медитации", "green"),
     ("/stats", "stats.html", "Статистика", "white"),
+    ("/nutrition", "nutrition.html", "Питание", "orange"),
 ]
 
 app = FastAPI(title="Pumping Iron")

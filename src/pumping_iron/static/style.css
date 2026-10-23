@@ -12,6 +12,7 @@
   --yellow: #e3b92c;
   --green: #26794a;
   --white: #ece9e2;
+  --orange: #d9722b;
 
   --font-display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
   --font-body: "IBM Plex Sans", system-ui, sans-serif;
@@ -23,6 +24,7 @@
 .plate-yellow { --plate: var(--yellow); --on: var(--steel-deep); }
 .plate-green  { --plate: var(--green);  --on: var(--chalk); }
 .plate-white  { --plate: var(--white);  --on: var(--steel-deep); }
+.plate-orange { --plate: var(--orange); --on: var(--steel-deep); }
 
 * { box-sizing: border-box; }
 
@@ -123,11 +125,19 @@ main p { max-width: 60ch; color: var(--muted); }
 
 .bar {
   flex: 1;
-  min-width: 2rem;
+  min-width: 1.5rem;
   height: 0.9rem;
-  border-radius: 0.2rem 0 0 0.2rem;
   background: linear-gradient(#8a9097, #565c63);
 }
+
+/* a side holds three plates; the first one in the DOM sits next to the collar */
+.side {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.side-left { flex-direction: row-reverse; }
 
 .collar {
   width: 0.9rem;
@@ -136,24 +146,27 @@ main p { max-width: 60ch; color: var(--muted); }
   background: linear-gradient(90deg, #8a9097, #565c63);
 }
 
+/* bar ends sticking out past the outermost plates */
 .sleeve {
-  width: 1rem;
+  width: 0.9rem;
   height: 0.9rem;
-  border-radius: 0 0.2rem 0.2rem 0;
   background: linear-gradient(#8a9097, #565c63);
 }
+
+.sleeve:first-child { border-radius: 0.2rem 0 0 0.2rem; }
+.sleeve:last-child { border-radius: 0 0.2rem 0.2rem 0; }
 
 .plate {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: clamp(3rem, 12vw, 5.25rem);
+  width: clamp(2.3rem, 8vw, 4.5rem);
   background: var(--plate);
   color: var(--on);
   border-radius: 0.5rem;
   box-shadow: inset 0 0 0 0.25rem rgb(0 0 0 / 0.16);
   font-family: var(--font-display);
-  font-size: clamp(1.05rem, 3.4vw, 1.5rem);
+  font-size: clamp(0.95rem, 2.6vw, 1.4rem);
   font-weight: 700;
   letter-spacing: 0.03em;
   text-decoration: none;
@@ -162,16 +175,17 @@ main p { max-width: 60ch; color: var(--muted); }
 }
 
 /* diameters shrink along the sleeve, like a real loaded bar */
-.plate:nth-of-type(1) { height: 22rem; }
-.plate:nth-of-type(2) { height: 19.5rem; }
-.plate:nth-of-type(3) { height: 17rem; }
-.plate:nth-of-type(4) { height: 14.5rem; }
-.plate:nth-of-type(5) { height: 12rem; }
+.plate:nth-child(1) { height: 22rem; }
+.plate:nth-child(2) { height: 18.5rem; }
+.plate:nth-child(3) { height: 15rem; }
 
 .plate:hover,
 .plate:focus-visible { transform: translateY(-0.4rem); }
 
-/* the one orchestrated moment: plates are loaded onto the bar, biggest first */
+/* the one orchestrated moment: plates slide onto both sleeves, biggest first */
+.side-left { --from: -3rem; }
+.side-right { --from: 3rem; }
+
 @media (prefers-reduced-motion: no-preference) {
   .plate {
     animation: load-plate 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
@@ -180,7 +194,7 @@ main p { max-width: 60ch; color: var(--muted); }
 }
 
 @keyframes load-plate {
-  from { opacity: 0; transform: translateX(3rem); }
+  from { opacity: 0; transform: translateX(var(--from)); }
 }
 
 /* ---------- assistant chat ---------- */
