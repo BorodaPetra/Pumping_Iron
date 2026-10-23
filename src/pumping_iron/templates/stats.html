@@ -72,7 +72,7 @@
 {% endif %}
 
 <section class="stat chart-bottom">
-  <h2>Прогресс в упражнении</h2>
+  <h2>Оценка разового максимума</h2>
   {% if progress.selected %}
     <form class="stat-pick" method="get" action="/stats">
       <input type="hidden" name="period" value="{{ period }}">
@@ -87,7 +87,7 @@
     </form>
     <figure>
       <figcaption>{{ progress.selected.name }}:
-        {% if progress.formula %}оценка разового максимума, кг (по формуле Эпли: вес × (1 + повторения / 30))
+        {% if progress.formula %}оценка разового максимума, кг = вес × (1 + повторения / 30)
         {% else %}лучший подход по повторениям{% endif %}</figcaption>
       {{ charts.progress }}
     </figure>
