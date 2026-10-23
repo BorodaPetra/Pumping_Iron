@@ -473,6 +473,45 @@ a.btn-quiet { text-decoration: none; }
 .periods a:hover, .periods a[aria-current] { color: var(--chalk); }
 .periods a[aria-current] { border-bottom-color: var(--plate); }
 
+/* ---------- statistics ---------- */
+
+.stat-tiles { display: flex; flex-wrap: wrap; gap: 1rem 2.5rem; margin-bottom: 2rem; }
+.stat-tile { display: flex; flex-direction: column; }
+.stat-num { font: 700 2rem var(--font-display); line-height: 1.1; }
+
+.stat { margin-top: 2.5rem; }
+.stat h2 { font-size: 1.4rem; margin-bottom: 0.75rem; }
+.stat h3 { font-size: 1.1rem; margin: 1.5rem 0 0.5rem; }
+.stat figure { margin: 0 0 1rem; }
+.stat figcaption { margin-bottom: 0.25rem; color: var(--muted); font-size: 0.9rem; }
+.stat-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: 1rem 2rem; }
+.stat-empty { margin: 0; }
+.stat-empty a { color: var(--chalk); }
+
+.chart { display: block; width: 100%; max-width: 36rem; height: auto; }
+.chart text { fill: var(--muted); font: 12px var(--font-body); }
+.chart .axis { stroke: var(--steel-light); stroke-width: 1; }
+.chart .col { fill: var(--plate); }
+.chart .col:hover, .chart .dot:hover { fill: var(--chalk); }
+.chart .line { fill: none; stroke: var(--plate); stroke-width: 2; stroke-linejoin: round; }
+.chart .dot { fill: var(--plate); }
+.chart .ref { stroke: var(--orange); stroke-width: 1.5; stroke-dasharray: 5 4; }
+
+/* sets per muscle group: name, bar, number */
+.hbars { list-style: none; margin: 0; padding: 0; max-width: 36rem; }
+.hbars li { display: grid; grid-template-columns: 8.5rem 1fr 2.5rem; align-items: center; gap: 0.75rem; padding: 0.15rem 0; }
+.hbar { height: 0.7rem; background: var(--steel-deep); border-radius: 0.35rem; overflow: hidden; }
+.hbar span { display: block; height: 100%; background: var(--plate); border-radius: 0.35rem; }
+.hbar-num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.stat-pick { display: flex; flex-wrap: wrap; align-items: end; gap: 0.75rem; margin-bottom: 1rem; }
+.stat-pick label { display: flex; flex-direction: column; gap: 0.25rem; color: var(--muted); font-size: 0.9rem; }
+.stat-pick select { min-width: 16rem; max-width: 100%; padding: 0.45rem 0.6rem; background: var(--steel-deep); color: var(--chalk); border: 1px solid var(--steel-light); border-radius: 0.4rem; font: inherit; }
+
+.stat-table { width: 100%; max-width: 36rem; border-collapse: collapse; }
+.stat-table th, .stat-table td { padding: 0.4rem 0.75rem 0.4rem 0; text-align: left; border-bottom: 1px solid var(--steel-light); }
+.stat-table th { color: var(--muted); font-weight: 400; font-size: 0.9rem; }
+
 .tiles { display: flex; flex-wrap: wrap; gap: 2rem; margin-bottom: 0.5rem; }
 .tile { display: flex; flex-direction: column; }
 .tile-value { display: flex; align-items: baseline; gap: 0.4rem; }

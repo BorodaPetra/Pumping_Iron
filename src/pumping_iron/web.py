@@ -18,7 +18,7 @@ PAGES = [
     ("/body", None, "Показатели", "blue"),
     ("/assistant", None, "АИ тренер", "yellow"),
     ("/meditation", "meditation.html", "Медитации", "green"),
-    ("/stats", "stats.html", "Статистика", "white"),
+    ("/stats", None, "Статистика", "white"),
     ("/nutrition", None, "Питание", "orange"),
 ]
 

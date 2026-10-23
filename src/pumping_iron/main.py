@@ -13,6 +13,7 @@ from pumping_iron.db import init_db
 from pumping_iron.nutrition import router as nutrition_router
 from pumping_iron.photos import router as photos_router
 from pumping_iron.quotes import QUOTES, quote_of_the_day
+from pumping_iron.stats import router as stats_router
 from pumping_iron.web import BASE_DIR, PAGES, page
 from pumping_iron.workouts import router as workouts_router
 
@@ -30,6 +31,7 @@ app.include_router(workouts_router)
 app.include_router(body_router)
 app.include_router(photos_router)
 app.include_router(nutrition_router)
+app.include_router(stats_router)
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 
 

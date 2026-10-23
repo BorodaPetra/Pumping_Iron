@@ -1,6 +1,130 @@
 {% extends "base.html" %}
 {% block title %}Статистика · Pumping Iron{% endblock %}
+
+{# A section hint shown instead of a chart when the period has no data. #}
+{% macro empty(text, href, link) %}
+<p class="stat-empty">{{ text }} <a href="{{ href }}">{{ link }}</a></p>
+{% endmacro %}
+
 {% block content %}
 <h1>Статистика</h1>
-<p>Графики и сводки: скоро.</p>
+
+<nav class="periods" aria-label="Период">
+  <span class="muted">{{ icon('calendar') }} Период:</span>
+  {% for days, label in periods %}
+    <a href="/stats?period={{ days }}{% if progress.selected %}&exercise_id={{ progress.selected.id }}{% endif %}"{% if days == period %} aria-current="true"{% endif %}>{{ label }}</a>
+  {% endfor %}
+</nav>
+
+<div class="stat-tiles">
+  <div class="stat-tile"><span class="stat-num">{{ tiles.workouts }}</span><span class="muted">тренировок</span></div>
+  <div class="stat-tile"><span class="stat-num">{{ tiles.sets }}</span><span class="muted">подходов</span></div>
+  <div class="stat-tile">
+    <span class="stat-num">{% if tiles.tonnage >= 1000 %}{{ '%.1f'|format(tiles.tonnage / 1000) }} т{% else %}{{ '%g'|format(tiles.tonnage | round) }} кг{% endif %}</span>
+    <span class="muted">тоннаж (повторения × вес)</span>
+  </div>
+  <div class="stat-tile"><span class="stat-num">{{ '%.1f'|format(tiles.per_week) }}</span><span class="muted">тренировок в неделю</span></div>
+  <div class="stat-tile"><span class="stat-num">{{ tiles.streak }}</span><span class="muted">недель подряд с тренировкой</span></div>
+</div>
+
+<section class="stat">
+  <h2>Нагрузка по неделям</h2>
+  {% if charts.days %}
+    <div class="stat-pair">
+      <figure><figcaption>Тренировок в неделю</figcaption>{{ charts.days }}</figure>
+      <figure><figcaption>Тоннаж за неделю, кг</figcaption>{{ charts.tonnage }}</figure>
+    </div>
+  {% else %}
+    {{ empty("За этот период в журнале пусто.", "/workouts/journal", "Записать подход") }}
+  {% endif %}
+</section>
+
+<section class="stat">
+  <h2>Подходы по группам мышц</h2>
+  <ul class="hbars">
+    {% for g in muscles %}
+      <li><span class="hbar-name">{{ g.name }}</span>
+        <span class="hbar" role="img" aria-label="{{ g.sets }} подходов"><span style="width: {{ '%.1f'|format(g.width) }}%"></span></span>
+        <span class="hbar-num">{{ g.sets }}</span></li>
+    {% endfor %}
+  </ul>
+  {% for hint in hints %}
+    <p class="notice">{{ icon('info') }} Перекос между антагонистами. {{ hint }}.</p>
+  {% endfor %}
+</section>
+
+<section class="stat">
+  <h2>Прогресс в упражнении</h2>
+  {% if progress.selected %}
+    <form class="stat-pick" method="get" action="/stats">
+      <input type="hidden" name="period" value="{{ period }}">
+      <label>Упражнение
+        <select name="exercise_id">
+          {% for o in progress.options %}
+            <option value="{{ o.id }}"{% if o.id == progress.selected.id %} selected{% endif %}>{{ o.name }} ({{ o.sets }})</option>
+          {% endfor %}
+        </select>
+      </label>
+      <button class="btn" type="submit">Показать</button>
+    </form>
+    <figure>
+      <figcaption>{{ progress.selected.name }}:
+        {% if progress.formula %}оценка разового максимума, кг (по формуле Эпли: вес × (1 + повторения / 30))
+        {% else %}лучший подход по повторениям{% endif %}</figcaption>
+      {{ charts.progress }}
+    </figure>
+  {% else %}
+    {{ empty("Нет подходов за этот период.", "/workouts/journal", "Записать подход") }}
+  {% endif %}
+
+  {% if records %}
+    <h3>Личные рекорды</h3>
+    <table class="stat-table">
+      <thead><tr><th>Упражнение</th><th>Лучший подход</th><th>Дата</th></tr></thead>
+      <tbody>
+        {% for r in records %}
+          <tr><td>{{ r.name }}</td>
+              <td>{% if r.weight_kg %}{{ '%g'|format(r.weight_kg) }} кг × {{ r.reps }}{% else %}{{ r.reps }} повторений{% endif %}</td>
+              <td>{{ r.performed_on[8:10] }}.{{ r.performed_on[5:7] }}.{{ r.performed_on[:4] }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+</section>
+
+<section class="stat">
+  <h2>Питание</h2>
+  {% if charts.kcal %}
+    <figure>
+      <figcaption>Калории по дням за последние {{ nutrition.days }} дн.{% if nutrition.plan %}, пунктир это рацион ({{ nutrition.plan }} ккал){% endif %}</figcaption>
+      {{ charts.kcal }}
+    </figure>
+    <p class="muted">Дней с записями: {{ nutrition.logged }} из {{ nutrition.days }}. В среднем за такой день:
+      {{ nutrition.average.kcal | round | int }} ккал, белки {{ nutrition.average.protein_g | round | int }} г,
+      жиры {{ nutrition.average.fat_g | round | int }} г, углеводы {{ nutrition.average.carbs_g | round | int }} г.</p>
+  {% else %}
+    {{ empty("В дневнике питания нет записей за этот период.", "/nutrition/log", "Открыть дневник") }}
+  {% endif %}
+</section>
+
+<section class="stat">
+  <h2>Вес и жир</h2>
+  {% if body.weight or body.fat %}
+    <div class="stat-pair">
+      {% for key in ("weight", "fat") %}
+        {% set b = body[key] %}
+        {% if b %}
+          <figure>
+            <figcaption>{{ b.type.name }}, {{ b.type.unit }}:
+              {{ '%g'|format(b.summary.value) }}
+              {% if b.summary.pct_text %}<span class="tone-{{ b.summary.tone }}">({{ b.summary.arrow }} {{ b.summary.pct_text }} за период)</span>{% endif %}</figcaption>
+            {{ b.chart }}
+          </figure>
+        {% endif %}
+      {% endfor %}
+    </div>
+  {% else %}
+    {{ empty("Замеров веса и жира пока нет.", "/body", "Внести замеры") }}
+  {% endif %}
+</section>
 {% endblock %}
