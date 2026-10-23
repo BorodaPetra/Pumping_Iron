@@ -71,7 +71,7 @@
 </section>
 {% endif %}
 
-<section class="stat">
+<section class="stat chart-bottom">
   <h2>Прогресс в упражнении</h2>
   {% if progress.selected %}
     <form class="stat-pick" method="get" action="/stats">
@@ -96,16 +96,17 @@
   {% endif %}
 </section>
 
-<section class="stat">
+<section class="stat chart-bottom">
   <h2>Питание</h2>
   {% if charts.kcal %}
+    {# The summary sits above the chart so the chart ends the section, level with the progress chart beside it. #}
+    <p class="muted">Дней с записями: {{ nutrition.logged }} из {{ nutrition.days }}. В среднем за такой день:
+      {{ nutrition.average.kcal | round | int }} ккал, белки {{ nutrition.average.protein_g | round | int }} г,
+      жиры {{ nutrition.average.fat_g | round | int }} г, углеводы {{ nutrition.average.carbs_g | round | int }} г.</p>
     <figure>
       <figcaption>Калории по дням за последние {{ nutrition.days }} дн.{% if nutrition.plan %}, пунктир это рацион ({{ nutrition.plan }} ккал){% endif %}</figcaption>
       {{ charts.kcal }}
     </figure>
-    <p class="muted">Дней с записями: {{ nutrition.logged }} из {{ nutrition.days }}. В среднем за такой день:
-      {{ nutrition.average.kcal | round | int }} ккал, белки {{ nutrition.average.protein_g | round | int }} г,
-      жиры {{ nutrition.average.fat_g | round | int }} г, углеводы {{ nutrition.average.carbs_g | round | int }} г.</p>
   {% else %}
     {{ empty("В дневнике питания нет записей за этот период.", "/nutrition/log", "Открыть дневник") }}
   {% endif %}

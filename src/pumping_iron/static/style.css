@@ -551,8 +551,11 @@ main.plate-blue { max-width: 80rem; }
    The white plate belongs to this page only, so it gets the same wide main as the body pages. */
 main.plate-white { max-width: 80rem; }
 @media (min-width: 70rem) {
-  .stat-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 3rem; align-items: start; }
+  .stat-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 3rem; }
   .stat-grid .wide { grid-column: 1 / -1; }
+  /* Sections of a row are equally tall and their chart is the last block, pushed down: the charts' x axes line up. */
+  .stat-grid .chart-bottom { display: flex; flex-direction: column; }
+  .stat-grid .chart-bottom figure:last-child { margin-top: auto; }
 }
 .stat-empty a { color: var(--chalk); }
 
