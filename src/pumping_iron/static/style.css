@@ -345,3 +345,24 @@ input:focus-visible, select:focus-visible { outline: 3px solid var(--plate, var(
 @media (max-width: 40rem) {
   .day { grid-template-columns: 1fr; gap: 0.5rem; }
 }
+
+/* ---------- nutrition ---------- */
+
+.totals { margin: 0 0 1.5rem; font-size: 1.1rem; color: var(--chalk); }
+.day-head p { line-height: 1.4; }
+
+.muted { color: var(--muted); font-size: 0.9rem; }
+
+.day-nav { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem; }
+.day-nav h2 { margin: 0; font-size: 1.5rem; }
+.day-nav a { color: var(--muted); text-decoration: none; font-size: 1.5rem; padding: 0 0.4rem; }
+.day-nav a:hover { color: var(--chalk); }
+
+.plan-picks { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.5rem; margin-top: 0.5rem; }
+
+.history { margin-top: 2.5rem; }
+.history h2 { font-size: 1.25rem; }
+.history table { width: 100%; max-width: 40rem; border-collapse: collapse; }
+.history th, .history td { padding: 0.4rem 0.75rem 0.4rem 0; text-align: left; border-bottom: 1px solid var(--steel-light); }
+.history thead th { color: var(--muted); font-weight: 400; font-size: 0.9rem; }
+.history a { color: var(--chalk); text-decoration-color: var(--plate); }

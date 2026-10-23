@@ -11,7 +11,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
-from pumping_iron.db import get_db
+from pumping_iron.db import get_db, write
 from pumping_iron.web import page
 
 router = APIRouter(prefix="/workouts")
@@ -25,19 +25,6 @@ WEEKDAYS_SHORT = ["пн", "вт", "ср", "чт", "пт", "сб", "вс"]
 Sets = Annotated[int, Form(ge=1, le=20)]
 Reps = Annotated[int, Form(ge=1, le=100)]
 Weight = Annotated[float, Form(ge=0, le=1000)]
-
-
-def write(db: sqlite3.Connection, sql: str, params: tuple = ()) -> sqlite3.Cursor:
-    """Run one write statement in its own transaction and commit it.
-
-    Takes the connection, the SQL and its parameters; returns the cursor.
-    A violated constraint (unknown exercise, duplicate name) becomes HTTP 400.
-    """
-    try:
-        with db:
-            return db.execute(sql, params)
-    except sqlite3.IntegrityError as exc:
-        raise HTTPException(400, f"Не удалось сохранить: {exc}") from exc
 
 
 def exercise_options(db: sqlite3.Connection) -> dict[str, list[sqlite3.Row]]:

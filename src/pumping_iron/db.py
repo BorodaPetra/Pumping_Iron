@@ -6,6 +6,8 @@ Tables:
   exercises      exercise library, each belongs to one muscle group
   program_items  the weekly plan: which exercise on which weekday (0 = Monday)
   log_entries    the training journal: one row per performed set
+  diet_items     the daily meal plan: foods per meal with calories and macros
+  food_log       what was actually eaten, per date (nutrition monitoring)
 
 The database file path comes from env PUMPING_IRON_DB, default `data/pumping_iron.db`
 in the project root (ignored by git).
@@ -15,6 +17,8 @@ import os
 import sqlite3
 from collections.abc import Iterator
 from pathlib import Path
+
+from fastapi import HTTPException
 
 DB_PATH = Path(os.environ.get("PUMPING_IRON_DB", Path(__file__).parents[2] / "data" / "pumping_iron.db"))
 
@@ -45,6 +49,28 @@ CREATE TABLE IF NOT EXISTS log_entries (
     reps         INTEGER NOT NULL CHECK (reps > 0),
     weight_kg    REAL NOT NULL CHECK (weight_kg >= 0)
 );
+CREATE TABLE IF NOT EXISTS diet_items (
+    id        INTEGER PRIMARY KEY,
+    meal      TEXT NOT NULL CHECK (meal IN ('Завтрак', 'Обед', 'Ужин', 'Перекус')),
+    food      TEXT NOT NULL,
+    grams     INTEGER NOT NULL CHECK (grams > 0),
+    kcal      INTEGER NOT NULL CHECK (kcal >= 0),
+    protein_g REAL NOT NULL CHECK (protein_g >= 0),
+    fat_g     REAL NOT NULL CHECK (fat_g >= 0),
+    carbs_g   REAL NOT NULL CHECK (carbs_g >= 0)
+);
+CREATE TABLE IF NOT EXISTS food_log (
+    id        INTEGER PRIMARY KEY,
+    eaten_on  TEXT NOT NULL,             -- ISO date, YYYY-MM-DD
+    meal      TEXT NOT NULL CHECK (meal IN ('Завтрак', 'Обед', 'Ужин', 'Перекус')),
+    food      TEXT NOT NULL,
+    grams     INTEGER NOT NULL CHECK (grams > 0),
+    kcal      INTEGER NOT NULL CHECK (kcal >= 0),
+    protein_g REAL NOT NULL CHECK (protein_g >= 0),
+    fat_g     REAL NOT NULL CHECK (fat_g >= 0),
+    carbs_g   REAL NOT NULL CHECK (carbs_g >= 0)
+);
+CREATE INDEX IF NOT EXISTS idx_food_log_date ON food_log(eaten_on);
 CREATE INDEX IF NOT EXISTS idx_log_entries_date ON log_entries(performed_on);
 CREATE INDEX IF NOT EXISTS idx_program_items_weekday ON program_items(weekday);
 """
@@ -131,3 +157,16 @@ def get_db() -> Iterator[sqlite3.Connection]:
         yield conn
     finally:
         conn.close()
+
+
+def write(db: sqlite3.Connection, sql: str, params: tuple = ()) -> sqlite3.Cursor:
+    """Run one write statement in its own transaction and commit it.
+
+    Takes the connection, the SQL and its parameters; returns the cursor.
+    A violated constraint (unknown exercise, duplicate name) becomes HTTP 400.
+    """
+    try:
+        with db:
+            return db.execute(sql, params)
+    except sqlite3.IntegrityError as exc:
+        raise HTTPException(400, f"Не удалось сохранить: {exc}") from exc

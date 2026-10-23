@@ -14,10 +14,19 @@
 </select>
 {% endmacro %}
 
-{# Sub-navigation between the program and the journal. #}
-{% macro workouts_tabs(current) %}
+{# Sub-navigation inside a section; `tabs` is a list of (path, label). #}
+{% macro section_tabs(tabs, current) %}
 <div class="tabs">
-  <a href="/workouts"{% if current == '/workouts' %} aria-current="page"{% endif %}>Программа</a>
-  <a href="/workouts/journal"{% if current == '/workouts/journal' %} aria-current="page"{% endif %}>Журнал</a>
+  {% for path, label in tabs %}
+    <a href="{{ path }}"{% if current == path %} aria-current="page"{% endif %}>{{ label }}</a>
+  {% endfor %}
 </div>
+{% endmacro %}
+
+{% macro workouts_tabs(current) %}
+{{ section_tabs([('/workouts', 'Программа'), ('/workouts/journal', 'Журнал')], current) }}
+{% endmacro %}
+
+{% macro nutrition_tabs(current) %}
+{{ section_tabs([('/nutrition', 'Рацион'), ('/nutrition/log', 'Дневник')], current) }}
 {% endmacro %}

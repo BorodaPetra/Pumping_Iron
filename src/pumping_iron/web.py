@@ -17,7 +17,7 @@ PAGES = [
     ("/assistant", "assistant.html", "АИ тренер", "yellow"),
     ("/meditation", "meditation.html", "Медитации", "green"),
     ("/stats", "stats.html", "Статистика", "white"),
-    ("/nutrition", "nutrition.html", "Питание", "orange"),
+    ("/nutrition", None, "Питание", "orange"),
 ]
 
 templates = Jinja2Templates(directory=BASE_DIR / "templates")

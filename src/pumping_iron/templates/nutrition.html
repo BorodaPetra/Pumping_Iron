@@ -1,6 +1,47 @@
 {% extends "base.html" %}
+{% from "_forms.html" import nutrition_tabs %}
 {% block title %}Питание · Pumping Iron{% endblock %}
 {% block content %}
 <h1>Питание</h1>
-<p>Рацион, калории и макронутриенты: скоро.</p>
+{{ nutrition_tabs(current) }}
+<p class="totals">
+  В день: {{ totals.kcal }} ккал · белки {{ '%g'|format(totals.protein_g) }} г · жиры {{ '%g'|format(totals.fat_g) }} г · углеводы {{ '%g'|format(totals.carbs_g) }} г
+</p>
+
+{% for meal in meals %}
+  <section class="day">
+    <header class="day-head">
+      <h2>{{ meal.meal }}</h2>
+      {% if meal["items"] %}
+        <p>{{ meal.totals.kcal }} ккал<br>Б {{ '%g'|format(meal.totals.protein_g) }} · Ж {{ '%g'|format(meal.totals.fat_g) }} · У {{ '%g'|format(meal.totals.carbs_g) }}</p>
+      {% endif %}
+    </header>
+
+    <div class="day-body">
+      {% for item in meal["items"] %}
+        <form class="item" method="post" action="/nutrition/{{ item.id }}/delete">
+          <span class="item-name">{{ item.food }}<small>{{ item.grams }} г</small></span>
+          <span class="item-load">{{ item.kcal }} ккал · Б {{ '%g'|format(item.protein_g) }} · Ж {{ '%g'|format(item.fat_g) }} · У {{ '%g'|format(item.carbs_g) }}</span>
+          <button class="btn-quiet" type="submit">Убрать</button>
+        </form>
+      {% else %}
+        <p class="rest">Пока пусто. Добавь продукт или попроси ИИ тренера составить рацион.</p>
+      {% endfor %}
+
+      <details class="add">
+        <summary>Добавить продукт</summary>
+        <form method="post" action="/nutrition/add">
+          <input type="hidden" name="meal" value="{{ meal.meal }}">
+          <input type="text" name="food" placeholder="Продукт" maxlength="80" aria-label="Продукт" required>
+          <input type="number" name="grams" placeholder="г" min="1" max="5000" aria-label="Граммы" required> г
+          <input type="number" name="kcal" placeholder="ккал" min="0" max="5000" aria-label="Калории" required> ккал
+          <input type="number" name="protein_g" placeholder="Б" min="0" max="500" step="0.1" aria-label="Белки, г" required>
+          <input type="number" name="fat_g" placeholder="Ж" min="0" max="500" step="0.1" aria-label="Жиры, г" required>
+          <input type="number" name="carbs_g" placeholder="У" min="0" max="1000" step="0.1" aria-label="Углеводы, г" required>
+          <button class="btn" type="submit">Добавить</button>
+        </form>
+      </details>
+    </div>
+  </section>
+{% endfor %}
 {% endblock %}

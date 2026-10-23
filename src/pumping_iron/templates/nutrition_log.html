@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% from "_forms.html" import nutrition_tabs %}
+{% block title %}Дневник питания · Pumping Iron{% endblock %}
+{% block content %}
+<h1>Питание</h1>
+{{ nutrition_tabs(current) }}
+
+<div class="day-nav">
+  <a href="/nutrition/log?day={{ prev_day }}" aria-label="Предыдущий день">←</a>
+  <h2>{{ label }}</h2>
+  <a href="/nutrition/log?day={{ next_day }}" aria-label="Следующий день">→</a>
+</div>
+
+<p class="totals">
+  Съедено: {{ eaten.kcal }} ккал{% if planned.kcal %} из {{ planned.kcal }} по рациону{% endif %}
+  · Б {{ '%g'|format(eaten.protein_g) }} · Ж {{ '%g'|format(eaten.fat_g) }} · У {{ '%g'|format(eaten.carbs_g) }}
+  {% if planned.kcal %}
+    <br><span class="muted">По рациону: Б {{ '%g'|format(planned.protein_g) }} · Ж {{ '%g'|format(planned.fat_g) }} · У {{ '%g'|format(planned.carbs_g) }}</span>
+  {% endif %}
+</p>
+
+{% for meal in meals %}
+  <section class="day">
+    <header class="day-head">
+      <h2>{{ meal.meal }}</h2>
+      {% if meal["items"] %}<p>{{ meal.totals.kcal }} ккал</p>{% endif %}
+    </header>
+
+    <div class="day-body">
+      {% for item in meal["items"] %}
+        <form class="item" method="post" action="/nutrition/log/{{ item.id }}/delete">
+          <input type="hidden" name="eaten_on" value="{{ day }}">
+          <span class="item-name">{{ item.food }}<small>{{ item.grams }} г</small></span>
+          <span class="item-load">{{ item.kcal }} ккал · Б {{ '%g'|format(item.protein_g) }} · Ж {{ '%g'|format(item.fat_g) }} · У {{ '%g'|format(item.carbs_g) }}</span>
+          <button class="btn-quiet" type="submit">Убрать</button>
+        </form>
+      {% else %}
+        <p class="rest">Ничего не записано.</p>
+      {% endfor %}
+
+      {% if plan_by_meal[meal.meal] %}
+        <div class="plan-picks">
+          <span class="muted">Съел по рациону:</span>
+          {% for p in plan_by_meal[meal.meal] %}
+            <form method="post" action="/nutrition/log/from-plan/{{ p.id }}">
+              <input type="hidden" name="eaten_on" value="{{ day }}">
+              <button class="btn-quiet" type="submit">+ {{ p.food }}, {{ p.grams }} г</button>
+            </form>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <details class="add">
+        <summary>Добавить другое</summary>
+        <form method="post" action="/nutrition/log/add">
+          <input type="hidden" name="eaten_on" value="{{ day }}">
+          <input type="hidden" name="meal" value="{{ meal.meal }}">
+          <input type="text" name="food" placeholder="Продукт" maxlength="80" aria-label="Продукт" required>
+          <input type="number" name="grams" placeholder="г" min="1" max="5000" aria-label="Граммы" required> г
+          <input type="number" name="kcal" placeholder="ккал" min="0" max="5000" aria-label="Калории" required> ккал
+          <input type="number" name="protein_g" placeholder="Б" min="0" max="500" step="0.1" aria-label="Белки, г" required>
+          <input type="number" name="fat_g" placeholder="Ж" min="0" max="500" step="0.1" aria-label="Жиры, г" required>
+          <input type="number" name="carbs_g" placeholder="У" min="0" max="1000" step="0.1" aria-label="Углеводы, г" required>
+          <button class="btn" type="submit">Записать</button>
+        </form>
+      </details>
+    </div>
+  </section>
+{% endfor %}
+
+<section class="history">
+  <h2>Последние дни</h2>
+  {% if history %}
+    <table>
+      <thead><tr><th scope="col">День</th><th scope="col">ккал</th><th scope="col">Белки, г</th><th scope="col">Жиры, г</th><th scope="col">Углеводы, г</th></tr></thead>
+      <tbody>
+        {% for h in history %}
+          <tr>
+            <th scope="row"><a href="/nutrition/log?day={{ h.day }}">{{ h.label }}</a></th>
+            <td>{{ h.row.kcal }}</td><td>{{ '%g'|format(h.row.protein_g) }}</td><td>{{ '%g'|format(h.row.fat_g) }}</td><td>{{ '%g'|format(h.row.carbs_g) }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>Записей пока нет.</p>
+  {% endif %}
+</section>
+{% endblock %}
