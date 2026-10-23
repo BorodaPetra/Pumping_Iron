@@ -92,17 +92,21 @@ def summarize(series: list[tuple[str, float]], period: int, better: str) -> dict
 
     `series` is [(ISO date, value)] sorted by date; `period` is days back from the latest
     date (0 = from the first measurement); `better` is "up", "down" or "none".
-    Returns {value, date, pct_text, tone}; pct_text is empty when there is no earlier
+    Returns {value, date, pct_text, tone, base}; pct_text is empty when there is no earlier
     value to compare with. tone is "good", "bad" or "flat" (no judgement or no change).
+    `base` is the number a value typed on the page today is compared with (see body.js):
+    the baseline, or the latest value when it is from an earlier day, else None.
     """
     latest_date, latest = series[-1]
-    summary = {"value": latest, "date": latest_date, "pct_text": "", "tone": "flat"}
+    summary = {"value": latest, "date": latest_date, "pct_text": "", "tone": "flat",
+               "base": latest if latest_date != date.today().isoformat() else None}
     cutoff = date.fromisoformat(latest_date) - timedelta(days=period) if period else None
     # PERF: the series is already sorted, so bisect on the date strings would find the
     # baseline in O(log n) instead of scanning; series here are a few dozen points at most.
     baseline = next(((d, v) for d, v in series if cutoff is None or date.fromisoformat(d) >= cutoff), None)
     if baseline is None or baseline[0] == latest_date:
         return summary
+    summary["base"] = baseline[1]
     pct = (latest - baseline[1]) / baseline[1] * 100
     summary["pct_text"] = f"{pct:+.1f} %".replace("-", "−")
     if abs(pct) >= 0.05 and better != "none":
@@ -128,7 +132,7 @@ def body_page(request: Request, db: Db, period: int = DEFAULT_PERIOD) -> HTMLRes
     types, summaries = load_summaries(db, period)
     labels = [
         {
-            "side": column, "top": label_y, "name": short, "edge": LABEL_EDGE[column],
+            "key": key, "side": column, "top": label_y, "name": short, "edge": LABEL_EDGE[column],
             "dot_x": BODY_LEFT + BODY_WIDTH * REGIONS[key][1][0] / FIG_W,  # % of the box width
             "dot_y": REGIONS[key][1][1] / FIG_H * 100,                     # % of the box height
             "info": summaries.get(key),
@@ -136,10 +140,14 @@ def body_page(request: Request, db: Db, period: int = DEFAULT_PERIOD) -> HTMLRes
         for key, (_muscles, _side, column, label_y, short) in FIGURE.items()
     ]
     # Every polygon is drawn neutral first; the measured regions are painted over it by tone.
-    overlays = [{"tone": summaries[key]["tone"], "polygons": REGIONS[key][0]} for key in FIGURE if key in summaries]
+    # Every region gets its own group (id reg-<key>) so body.js can recolour it while typing.
+    overlays = [
+        {"key": key, "tone": summaries[key]["tone"] if key in summaries else "", "polygons": REGIONS[key][0]}
+        for key in FIGURE
+    ]
     return page(
         request, "body.html", "blue", types=types, summaries=summaries, labels=labels,
-        base=BASE_POLYGONS, overlays=overlays, ratio=BOX_RATIO,
+        base=BASE_POLYGONS, overlays=overlays, ratio=BOX_RATIO, by_key={t["key"]: t for t in types},
         period=period, periods=PERIODS, today=date.today().isoformat(),
         tiles=[(t, summaries.get(t["key"])) for t in types if t["kind"] != "girth"],
     )
@@ -149,15 +157,16 @@ def body_page(request: Request, db: Db, period: int = DEFAULT_PERIOD) -> HTMLRes
 async def add_measurements(request: Request, db: Db) -> RedirectResponse:
     """Save the filled-in fields of the form as measurements for one date.
 
-    The fields are named after `measure_types.key`; blank ones are skipped. Values are
-    checked against each type's plausible range and the date must not be in the future.
+    The fields are named after `measure_types.key`; blank ones are skipped. The date is
+    today unless a `measured_on` field is sent. Values are checked against each type's
+    plausible range and the date must not be in the future.
     Saving a type again for the same date replaces the old value.
     """
     form = await request.form()
     try:
-        measured_on = date.fromisoformat(str(form.get("measured_on", "")))
+        measured_on = date.fromisoformat(str(form.get("measured_on") or date.today().isoformat()))
     except ValueError:
-        raise HTTPException(422, "Укажи дату замера") from None
+        raise HTTPException(422, "Дата замера некорректна") from None
     if measured_on > date.today():
         raise HTTPException(422, "Дата замера в будущем")
 
