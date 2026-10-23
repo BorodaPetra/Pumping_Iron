@@ -1,5 +1,6 @@
 """FastAPI application: home page, section pages and routers."""
 
+import random
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -44,10 +45,11 @@ def render(template: str, plate: str | None = None):
 async def index(request: Request, shift: int = 0) -> HTMLResponse:
     """Home page: the barbell plus the quote of the day.
 
-    `shift` (query) is how many quotes past today's the visitor has stepped with the "next" button.
+    `shift` (query) is how many quotes past today's the visitor has jumped to. The "another quote"
+    link points to a random shift, never the one already shown.
     """
-    return page(request, "index.html", quote=quote_of_the_day(shift=shift),
-                next_shift=(shift + 1) % len(QUOTES))
+    next_shift = (shift + 1 + random.randrange(len(QUOTES) - 1)) % len(QUOTES)
+    return page(request, "index.html", quote=quote_of_the_day(shift=shift), next_shift=next_shift)
 
 
 app.add_api_route("/", index, response_class=HTMLResponse)

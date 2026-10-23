@@ -45,7 +45,7 @@
       {{ block(quote.ru, "Русский перевод", "перевод Claude", "ru") }}
     {% endif %}
   </div>
-  {# A plain link: the next quote is chosen on the server, no script needed. #}
-  <a class="btn-quiet quote-next" href="/?shift={{ next_shift }}#quote">Следующая цитата {{ icon("arrow-right") }}</a>
+  {# A plain link: the server picks the random quote for the next click, no script needed. #}
+  <a class="btn-quiet quote-next" href="/?shift={{ next_shift }}#quote">Другая цитата {{ icon("shuffle") }}</a>
 </section>
 {% endblock %}
