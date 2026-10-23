@@ -14,7 +14,7 @@ from datetime import date
 from pumping_iron.body import load_summaries
 from pumping_iron.nutrition import MEALS, build_diet_week
 from pumping_iron.stats import personal_records
-from pumping_iron.workouts import WEEKDAYS, WEEKDAYS_SHORT, build_week, exercise_options
+from pumping_iron.workouts import PROGRAM_DAYS, WEEKDAYS, WEEKDAYS_SHORT, build_program, exercise_options
 
 # How much history goes into the prompt: the last training days, and the period of the body changes.
 JOURNAL_DAYS = 5
@@ -28,14 +28,14 @@ ADD_TO_PROGRAM_TOOL = {
     "function": {
         "name": "add_to_program",
         "description": (
-            "Добавить упражнение в недельную программу тренировок пользователя. "
+            "Добавить упражнение в программу тренировок пользователя (три дня). "
             "Вызывай по одному разу на каждое упражнение."
         ),
         "parameters": {
             "type": "object",
             "properties": {
-                "weekday": {"type": "integer", "minimum": 1, "maximum": 7,
-                            "description": "День недели: 1 = понедельник, 7 = воскресенье"},
+                "day": {"type": "integer", "minimum": 1, "maximum": 3,
+                        "description": "День программы: 1, 2 или 3"},
                 "exercise": {"type": "string",
                              "description": "Название упражнения, лучше точно из справочника"},
                 "muscle_group": {"type": "string",
@@ -45,7 +45,7 @@ ADD_TO_PROGRAM_TOOL = {
                 "weight_kg": {"type": "number", "minimum": 0, "maximum": 1000,
                               "description": "Рабочий вес в кг, 0 для упражнений с собственным весом"},
             },
-            "required": ["weekday", "exercise", "sets", "reps"],
+            "required": ["day", "exercise", "sets", "reps"],
         },
     },
 }
@@ -134,10 +134,10 @@ def build_context(db: sqlite3.Connection) -> str:
         for group, exercises in exercise_options(db).items()
     )
     program = "\n".join(
-        f"- {day['name']} (день {number}): "
+        f"- {day['name']}: "
         + ("; ".join(f"{i['exercise']} {i['sets']}×{i['reps']}, {i['weight_kg']:g} кг" for i in day["items"])
-           or "отдых")
-        for number, day in enumerate(build_week(db), start=1)
+           or "пусто")
+        for day in build_program(db)
     )
     diet = "\n".join(
         f"- {day['name']} (день {number}, итого {day['totals']['kcal']} ккал, Б {day['totals']['protein_g']:g} / "
@@ -181,14 +181,14 @@ def add_to_program(db: sqlite3.Connection, args: dict) -> tuple[str, str | None]
     case-insensitively; an unknown name is created only when a valid `muscle_group` is given.
     """
     try:
-        weekday = int(args["weekday"])
+        day = int(args["day"])
         sets, reps = int(args["sets"]), int(args["reps"])
         weight = float(args.get("weight_kg") or 0)
         name = _clean_name(args["exercise"])
     except (KeyError, TypeError, ValueError):
-        return _error("нужны weekday, exercise, sets, reps (числа) и необязательный weight_kg")
-    if not (1 <= weekday <= 7 and 1 <= sets <= 20 and 1 <= reps <= 100 and 0 <= weight <= 1000 and name):
-        return _error("значения вне допустимых диапазонов: weekday 1-7, sets 1-20, reps 1-100, weight_kg 0-1000")
+        return _error("нужны day, exercise, sets, reps (числа) и необязательный weight_kg")
+    if not (1 <= day <= 3 and 1 <= sets <= 20 and 1 <= reps <= 100 and 0 <= weight <= 1000 and name):
+        return _error("значения вне допустимых диапазонов: day 1-3, sets 1-20, reps 1-100, weight_kg 0-1000")
     if len(name) > MAX_NAME_LEN:
         return _error(f"название упражнения длиннее {MAX_NAME_LEN} символов")
 
@@ -206,18 +206,18 @@ def add_to_program(db: sqlite3.Connection, args: dict) -> tuple[str, str | None]
         exercise = {"id": cursor.lastrowid, "name": name}
         created = True
 
-    day = weekday - 1
-    if db.execute("SELECT 1 FROM program_items WHERE weekday = ? AND exercise_id = ?", (day, exercise["id"])).fetchone():
+    day -= 1
+    if db.execute("SELECT 1 FROM program_items WHERE day = ? AND exercise_id = ?", (day, exercise["id"])).fetchone():
         return _error(f"«{exercise['name']}» уже есть в программе на этот день")
     with db:
         db.execute(
-            "INSERT INTO program_items (weekday, exercise_id, sets, reps, weight_kg) VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO program_items (day, exercise_id, sets, reps, weight_kg) VALUES (?, ?, ?, ?, ?)",
             (day, exercise["id"], sets, reps, weight),
         )
-    notice = f"✅ В программу добавлено: {WEEKDAYS[day]}, {exercise['name']}, {sets}×{reps}, {weight:g} кг"
+    notice = f"✅ В программу добавлено: {PROGRAM_DAYS[day]}, {exercise['name']}, {sets}×{reps}, {weight:g} кг"
     if created:
         notice += " (новое упражнение в справочнике)"
-    return json.dumps({"ok": True, "added": exercise["name"], "weekday": weekday}, ensure_ascii=False), notice
+    return json.dumps({"ok": True, "added": exercise["name"], "day": day + 1}, ensure_ascii=False), notice
 
 
 def add_to_diet(db: sqlite3.Connection, args: dict) -> tuple[str, str | None]:

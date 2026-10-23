@@ -20,6 +20,8 @@ Db = Annotated[sqlite3.Connection, Depends(get_db)]
 
 WEEKDAYS = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"]
 WEEKDAYS_SHORT = ["пн", "вт", "ср", "чт", "пт", "сб", "вс"]
+# The training program has three numbered days instead of weekdays.
+PROGRAM_DAYS = ["День 1", "День 2", "День 3"]
 
 # Validated form fields shared by several endpoints.
 Sets = Annotated[int, Form(ge=1, le=20)]
@@ -40,25 +42,25 @@ def exercise_options(db: sqlite3.Connection) -> dict[str, list[sqlite3.Row]]:
     return options
 
 
-def build_week(db: sqlite3.Connection) -> list[dict]:
-    """Return the program as seven day dicts: name, items, muscle groups and missing antagonists.
+def build_program(db: sqlite3.Connection) -> list[dict]:
+    """Return the program as three day dicts: name, items, muscle groups and missing antagonists.
 
-    One joined query loads the whole week; grouping by weekday happens in Python.
+    One joined query loads the whole program; grouping by day happens in Python.
     A group's antagonist counts as missing when no exercise of that group is on the same day.
     """
     rows = db.execute(
-        """SELECT p.id, p.weekday, p.sets, p.reps, p.weight_kg,
+        """SELECT p.id, p.day, p.sets, p.reps, p.weight_kg,
                   e.name AS exercise, g.id AS group_id, g.name AS group_name,
                   g.antagonist_id, a.name AS antagonist_name
            FROM program_items p
            JOIN exercises e ON e.id = p.exercise_id
            JOIN muscle_groups g ON g.id = e.muscle_group_id
            LEFT JOIN muscle_groups a ON a.id = g.antagonist_id
-           ORDER BY p.weekday, p.id"""
+           ORDER BY p.day, p.id"""
     ).fetchall()
-    days = [{"name": name, "items": []} for name in WEEKDAYS]
+    days = [{"name": name, "items": []} for name in PROGRAM_DAYS]
     for row in rows:
-        days[row["weekday"]]["items"].append(row)
+        days[row["day"]]["items"].append(row)
     for day in days:
         present = {item["group_id"] for item in day["items"]}
         day["groups"] = list(dict.fromkeys(item["group_name"] for item in day["items"]))
@@ -72,45 +74,45 @@ def build_week(db: sqlite3.Connection) -> list[dict]:
 
 @router.get("", response_class=HTMLResponse)
 def program_page(request: Request, db: Db) -> HTMLResponse:
-    """Show the weekly program with edit forms and the exercise-library form."""
+    """Show the 3-day program with edit forms and the exercise-library form."""
     groups = db.execute("SELECT id, name FROM muscle_groups ORDER BY id").fetchall()
-    return page(request, "workouts.html", "red", days=build_week(db),
+    return page(request, "workouts.html", "red", days=build_program(db),
                 options=exercise_options(db), groups=groups)
 
 
 @router.post("/program/add")
-def add_program_item(db: Db, weekday: Annotated[int, Form(ge=0, le=6)],
+def add_program_item(db: Db, day: Annotated[int, Form(ge=0, le=2)],
                      exercise_id: Annotated[int, Form()],
                      sets: Sets, reps: Reps, weight_kg: Weight) -> RedirectResponse:
-    """Add an exercise to a weekday of the program."""
-    write(db, "INSERT INTO program_items (weekday, exercise_id, sets, reps, weight_kg) VALUES (?, ?, ?, ?, ?)",
-          (weekday, exercise_id, sets, reps, weight_kg))
-    return RedirectResponse(f"/workouts#day-{weekday}", status_code=303)
+    """Add an exercise to a day (0-2) of the program."""
+    write(db, "INSERT INTO program_items (day, exercise_id, sets, reps, weight_kg) VALUES (?, ?, ?, ?, ?)",
+          (day, exercise_id, sets, reps, weight_kg))
+    return RedirectResponse(f"/workouts#day-{day}", status_code=303)
 
 
-def program_weekday(db: sqlite3.Connection, item_id: int) -> int:
-    """Return the weekday of a program item, or raise HTTP 404 if it does not exist."""
-    row = db.execute("SELECT weekday FROM program_items WHERE id = ?", (item_id,)).fetchone()
+def program_day(db: sqlite3.Connection, item_id: int) -> int:
+    """Return the day (0-2) of a program item, or raise HTTP 404 if it does not exist."""
+    row = db.execute("SELECT day FROM program_items WHERE id = ?", (item_id,)).fetchone()
     if row is None:
         raise HTTPException(404, "Упражнения нет в программе")
-    return row["weekday"]
+    return row["day"]
 
 
 @router.post("/program/{item_id}/update")
 def update_program_item(item_id: int, db: Db, sets: Sets, reps: Reps, weight_kg: Weight) -> RedirectResponse:
     """Change sets, reps and weight of a program item."""
-    weekday = program_weekday(db, item_id)
+    day = program_day(db, item_id)
     write(db, "UPDATE program_items SET sets = ?, reps = ?, weight_kg = ? WHERE id = ?",
           (sets, reps, weight_kg, item_id))
-    return RedirectResponse(f"/workouts#day-{weekday}", status_code=303)
+    return RedirectResponse(f"/workouts#day-{day}", status_code=303)
 
 
 @router.post("/program/{item_id}/delete")
 def delete_program_item(item_id: int, db: Db) -> RedirectResponse:
     """Remove an exercise from the program."""
-    weekday = program_weekday(db, item_id)
+    day = program_day(db, item_id)
     write(db, "DELETE FROM program_items WHERE id = ?", (item_id,))
-    return RedirectResponse(f"/workouts#day-{weekday}", status_code=303)
+    return RedirectResponse(f"/workouts#day-{day}", status_code=303)
 
 
 @router.post("/exercises")

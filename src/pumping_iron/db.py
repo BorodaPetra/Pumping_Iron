@@ -4,7 +4,7 @@ Tables:
   muscle_groups  groups of muscles; `movement` links complementary groups
                  (push/pull/legs/core), `antagonist_id` points to the opposing group
   exercises      exercise library, each belongs to one muscle group
-  program_items  the weekly plan: which exercise on which weekday (0 = Monday)
+  program_items  the training program: which exercise on which of its 3 days (0 = day 1)
   log_entries    the training journal: one row per performed set
   diet_items     the weekly meal plan: foods per weekday (0 = Monday) and meal with calories and macros
   food_log       what was actually eaten, per date (nutrition monitoring)
@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS exercises (
 );
 CREATE TABLE IF NOT EXISTS program_items (
     id          INTEGER PRIMARY KEY,
-    weekday     INTEGER NOT NULL CHECK (weekday BETWEEN 0 AND 6),
+    day         INTEGER NOT NULL CHECK (day BETWEEN 0 AND 2),
     exercise_id INTEGER NOT NULL REFERENCES exercises(id),
     sets        INTEGER NOT NULL CHECK (sets > 0),
     reps        INTEGER NOT NULL CHECK (reps > 0),
@@ -102,7 +102,7 @@ CREATE TABLE IF NOT EXISTS photos (
 );
 CREATE INDEX IF NOT EXISTS idx_photos_date ON photos(taken_on);
 CREATE INDEX IF NOT EXISTS idx_log_entries_date ON log_entries(performed_on);
-CREATE INDEX IF NOT EXISTS idx_program_items_weekday ON program_items(weekday);
+CREATE INDEX IF NOT EXISTS idx_program_items_day ON program_items(day);
 """
 
 # (name, movement); complementary groups share a movement.
@@ -187,6 +187,25 @@ def seed_training(conn: sqlite3.Connection) -> None:
     )
 
 
+def migrate_program_days(conn: sqlite3.Connection) -> None:
+    """Turn the weekday program (`weekday` 0-6) into a 3-day one (`day` 0-2) in an older database.
+
+    The table is rebuilt because the CHECK range changes. Monday, Tuesday and Wednesday become days 1-3;
+    rows of later weekdays are merged into day 3, so no exercise is lost. Does nothing on a new
+    database or when the column is already `day`. Must run before the schema script, whose index uses `day`.
+    """
+    if not any(col["name"] == "weekday" for col in conn.execute("PRAGMA table_info(program_items)")):
+        return
+    conn.execute("ALTER TABLE program_items RENAME TO program_items_old")
+    conn.execute("DROP INDEX IF EXISTS idx_program_items_weekday")
+    conn.executescript(SCHEMA)  # creates the new program_items (the other tables exist and are skipped)
+    conn.execute(
+        """INSERT INTO program_items (id, day, exercise_id, sets, reps, weight_kg)
+           SELECT id, MIN(weekday, 2), exercise_id, sets, reps, weight_kg FROM program_items_old ORDER BY id"""
+    )
+    conn.execute("DROP TABLE program_items_old")
+
+
 def migrate_diet_weekday(conn: sqlite3.Connection) -> None:
     """Turn the old one-day meal plan into a weekly one in a database created before `weekday` existed.
 
@@ -214,6 +233,7 @@ def init_db() -> None:
     conn = connect()
     try:
         with conn:
+            migrate_program_days(conn)
             conn.executescript(SCHEMA)
             migrate_diet_weekday(conn)
             if not conn.execute("SELECT 1 FROM muscle_groups LIMIT 1").fetchone():
