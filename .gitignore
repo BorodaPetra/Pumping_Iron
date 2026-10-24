@@ -20,3 +20,6 @@ api-endpoints.md
 
 # Personal data: database and progress photos
 data/
+
+# Implementation notes (working document, not committed)
+IMPLEMENTATION.md
