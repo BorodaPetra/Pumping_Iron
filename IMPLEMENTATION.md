@@ -6,7 +6,7 @@
 
 - `git init -b main`, `.gitignore` (venv, кэши, `*.db`, `.env`).
 - `uv init --app` создаёт пакет в `src/pumping_iron/` и `pyproject.toml`; зависимости ставятся через `uv add`, версии фиксируются в `uv.lock`.
-- Запуск: `uv run pumping-iron` (функция `main()` в `__init__.py` стартует uvicorn с reload).
+- Запуск: `uv run pumping-iron` (функция `main()` в `__init__.py` стартует uvicorn с reload). Двойной клик по `start.bat` в корне делает то же самое и через 3 секунды открывает http://127.0.0.1:8000 в браузере; окно закрывается вместе с сервером. Используется рабочая БД `data/pumping_iron.db`.
 
 ## Шаг 2. Каркас FastAPI
 
